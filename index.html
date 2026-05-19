@@ -425,15 +425,46 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #geolocate-btn:hover { background: var(--blue-lt); color: var(--blue); border-color: rgba(47,111,222,.3); }
 #geolocate-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(47,111,222,.25), var(--shadow); }
 #geolocate-btn.active:hover { background: #1e55bb; }
-/* Pulso animado cuando está activo */
 #geolocate-btn.active::after {
   content: ''; position: absolute; inset: -4px; border-radius: 11px;
   border: 2px solid var(--blue); opacity: 0; animation: geo-pulse 2s infinite;
 }
 @keyframes geo-pulse { 0%{opacity:.6;transform:scale(1)} 100%{opacity:0;transform:scale(1.5)} }
 
+/* ── DRAW BUTTON (lápiz) ── */
+#draw-btn {
+  position: absolute; bottom: 174px; right: 12px; z-index: 999;
+  width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow); backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; color: var(--text2);
+}
+#draw-btn:hover { background: var(--blue-lt); color: var(--blue); border-color: rgba(47,111,222,.3); }
+#draw-btn.active { background: #e06c00; color: #fff; border-color: #e06c00; box-shadow: 0 0 0 3px rgba(224,108,0,.25), var(--shadow); }
+#draw-btn.active:hover { background: #b85700; }
+
+/* Draw instructions tooltip */
+#draw-hint {
+  position: absolute; bottom: 178px; right: 58px; z-index: 999;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: 8px; padding: 6px 10px;
+  font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text2);
+  box-shadow: var(--shadow); backdrop-filter: blur(14px);
+  white-space: nowrap; display: none; pointer-events: none;
+}
+#draw-hint.show { display: block; }
+
 .bm-btn.active { background: var(--blue); color: #fff; box-shadow: 0 1px 4px rgba(47,111,222,.4); }
 .bm-btn:not(.active):hover { background: var(--blue-lt); color: var(--blue); }
+
+/* Marca de agua de fecha de imagen */
+#imagery-date {
+  position: absolute; top: 46px; right: 12px; z-index: 998;
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  color: rgba(255,255,255,0.75); text-shadow: 0 1px 3px rgba(0,0,0,.7);
+  pointer-events: none; letter-spacing: .04em;
+}
 
 /* ── HAMBURGER (móvil) ── */
 #menu-btn {
@@ -452,48 +483,72 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #menu-btn.open span:nth-child(2) { opacity: 0; }
 #menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-/* ── RESPONSIVE ── */
+/* ── RESPONSIVE MÓVIL ── */
 @media (max-width: 700px) {
-  :root { --panel-w: calc(100vw - 24px); }
+  :root { --panel-w: 280px; }
 
   header { padding: 0 12px; height: 48px; }
   .logo-sub, .status-pill { display: none; }
   .logo-text { font-size: 16px; }
 
-  #menu-btn { display: flex; }
+  /* Hamburguesa: esquina superior DERECHA */
+  #menu-btn { display: flex; left: auto; right: 12px; top: 12px; }
 
-  /* Sidebar oculto por defecto en móvil, se muestra con clase .mobile-open */
+  /* Sidebar: sale desde la DERECHA */
   .sidebar {
-    top: 60px; left: 12px; right: 12px; bottom: 12px;
-    width: auto;
-    transform: translateX(calc(-100% - 24px));
+    top: 60px; right: 12px; left: auto; bottom: 12px;
+    width: var(--panel-w);
+    transform: translateX(calc(100% + 24px));
     transition: transform .28s cubic-bezier(.4,0,.2,1);
     z-index: 900;
+    /* Solo mostrar el panel SIGPAC — ocultar el resto */
   }
   .sidebar.mobile-open { transform: translateX(0); }
 
-  /* Search panel: debajo del sidebar en móvil, ocupa todo el ancho */
-  #search-panel {
-    left: 12px; right: 12px; width: auto;
-    top: auto !important;
+  /* En móvil: ocultar cards que no interesan */
+  .sidebar .upload-row,
+  .sidebar #sigpac-import-panel,
+  .sidebar .layers-card,
+  .sidebar #search-panel { display: none !important; }
+
+  /* Query switcher: dentro del sidebar en móvil, arriba del todo, visible */
+  #query-switcher {
+    display: flex;
+    order: -1;
+    width: 100%;
+    margin-bottom: 0;
   }
 
-  /* Query switcher: texto más pequeño */
-  .qs-btn { font-size: 7px; padding: 5px 6px; }
+  /* Search panel: no aparece en móvil */
+  #search-panel { display: none !important; }
 
-  /* Basemap switcher: más pequeño */
+  /* Basemap switcher: esquina inferior IZQUIERDA en móvil */
+  #basemap-switcher {
+    top: auto; right: auto;
+    bottom: 90px; left: 12px;
+  }
+
+  /* Popup consulta: casi ancho completo centrado */
+  #query-popup {
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    width: calc(100vw - 24px);
+    left: 12px !important;
+  }
+
+  /* Zoom y geolocate: más grandes para táctil */
+  #geolocate-btn { width: 42px; height: 42px; bottom: 130px; }
+  #draw-btn      { width: 42px; height: 42px; }
+  .leaflet-control-zoom a {
+    width: 36px !important; height: 36px !important;
+    line-height: 36px !important; font-size: 18px !important;
+  }
+
+  /* Query switcher: botones más grandes en táctil */
+  .qs-btn { font-size: 8px; padding: 7px 8px; }
+
+  /* Bm-btn más compacto */
   .bm-btn { font-size: 8px; padding: 5px 8px; }
-  #basemap-switcher { top: 12px; right: 12px; }
-
-  /* Popup consulta: ancho completo */
-  #query-popup { min-width: 0; max-width: calc(100vw - 24px); width: calc(100vw - 24px); left: 12px !important; }
-
-  /* Geolocate y zoom más accesibles en táctil */
-  #geolocate-btn { width: 42px; height: 42px; }
-  .leaflet-control-zoom a { width: 36px !important; height: 36px !important; line-height: 36px !important; font-size: 18px !important; }
-
-  /* Clusters y fotos: thumb un poco más grande en táctil */
-  .photo-thumb { width: 44px; height: 44px; }
 }
 </style>
 </head>
@@ -626,6 +681,13 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   </div>
 
   <div id="map"></div>
+  <button id="draw-btn" title="Dibujar área">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  </button>
+  <div id="draw-hint">Clic para añadir vértices · Doble clic para cerrar</div>
   <button id="geolocate-btn" title="Mi ubicación">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
@@ -635,7 +697,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   <div id="basemap-switcher">
     <button class="bm-btn active" id="bm-sat" onclick="setBasemap('sat')">Satélite</button>
     <button class="bm-btn" id="bm-osm" onclick="setBasemap('osm')">Calles</button>
+    <button class="bm-btn" id="bm-earth" onclick="setBasemap('earth')">Earth</button>
   </div>
+  <div id="imagery-date">Esri World Imagery</div>
 </div>
 
 <div id="lightbox">
@@ -651,21 +715,44 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 // ═══════════════════════════════════════════════════════════════
 // 1. MAPA
 // ═══════════════════════════════════════════════════════════════
-const map = L.map('map', { center: [39.5, -3.0], zoom: 8, zoomControl: false });
-// Zoom en esquina inferior derecha
+const map = L.map('map', {
+  center: [39.5, -3.0], zoom: 8,
+  zoomControl: false,
+  maxZoom: 21          // el mapa nunca hace zoom-out forzado al cambiar capa
+});
 L.control.zoom({ position: 'bottomright' }).addTo(map);
+
 const baseLayers = {
-  sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri' }),
-  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' })
+  // maxNativeZoom = zoom máximo real del servicio; maxZoom = zoom máximo del mapa
+  // Leaflet estirará los tiles del nivel maxNativeZoom en lugar de forzar un zoom-out
+  sat:   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+           { attribution: 'Esri', maxNativeZoom: 19, maxZoom: 21 }),
+  osm:   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+           { attribution: '© OSM', maxNativeZoom: 19, maxZoom: 21 }),
+  earth: L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+           { attribution: '© Google', maxNativeZoom: 20, maxZoom: 21, crossOrigin: true })
 };
 baseLayers.sat.addTo(map);
 let activeBasemap = 'sat';
+
+// Marcas de agua de fecha de imagen (solo para capas satélite)
+const IMAGERY_DATES = {
+  sat:   'Esri World Imagery',
+  earth: 'Google Earth'
+};
+const dateWatermark = document.getElementById('imagery-date');
+
+function updateDateWatermark(type) {
+  if (!dateWatermark) return;
+  const label = IMAGERY_DATES[type];
+  if (label) { dateWatermark.textContent = label; dateWatermark.style.display = ''; }
+  else        { dateWatermark.style.display = 'none'; }
+}
 
 function setBasemap(type) {
   if (type === activeBasemap) return;
   map.removeLayer(baseLayers[activeBasemap]);
   baseLayers[type].addTo(map);
-  // Re-raise overlays on top of the new basemap
   if (typeof wmsRecinto !== 'undefined' && map.hasLayer(wmsRecinto)) { map.removeLayer(wmsRecinto); wmsRecinto.addTo(map); }
   if (typeof wmsCultivo !== 'undefined' && map.hasLayer(wmsCultivo)) { map.removeLayer(wmsCultivo); wmsCultivo.addTo(map); }
   if (typeof shpLayers !== 'undefined') shpLayers.forEach(l => {
@@ -675,9 +762,11 @@ function setBasemap(type) {
   });
   if (typeof photoGroup !== 'undefined' && map.hasLayer(photoGroup)) { map.removeLayer(photoGroup); photoGroup.addTo(map); }
   activeBasemap = type;
-  document.getElementById('bm-sat').classList.toggle('active', type === 'sat');
-  document.getElementById('bm-osm').classList.toggle('active', type === 'osm');
+  document.querySelectorAll('.bm-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('bm-' + type)?.classList.add('active');
+  updateDateWatermark(type);
 }
+updateDateWatermark('sat');
 
 // ═══════════════════════════════════════════════════════════════
 // 2. WMS — RECINTOS + CULTIVO DECLARADO
@@ -689,13 +778,15 @@ const CULTIVO_LAYER  = 'cultivo_declarado';
 const wmsRecinto = L.tileLayer.wms(WMS_URL, {
   layers: '0', format: 'image/png', transparent: true,
   version: '1.1.1', crs: L.CRS.EPSG3857, uppercase: true,
-  opacity: 1.0, className: 'wms-magenta-filter'
+  opacity: 1.0, className: 'wms-magenta-filter',
+  maxZoom: 21, maxNativeZoom: 20
 }).addTo(map);
 
 const wmsCultivo = L.tileLayer.wms(CULTIVO_WMS, {
   layers: CULTIVO_LAYER, format: 'image/png', transparent: true,
   version: '1.3.0', uppercase: false,
-  opacity: 1.0, className: 'wms-cultivo-filter'
+  opacity: 1.0, className: 'wms-cultivo-filter',
+  maxZoom: 21, maxNativeZoom: 20
 }).addTo(map);
 
 document.getElementById('tog-recinto').addEventListener('change', e => {
@@ -1895,7 +1986,7 @@ function addShpLayer(geojson, name) {
   // Fit bounds sin forzar zoom extremo: max zoom 15
   try {
     const bounds = polyLayer.getBounds();
-    if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60] });
   } catch(_) {}
 
   addShpToUnifiedList(obj);
@@ -1958,7 +2049,7 @@ function addShpToUnifiedList(layer) {
   // Zoom al nombre
   item.querySelector('.item-name').addEventListener('click', e => {
     e.stopPropagation();
-    try { map.fitBounds(layer.polyLayer.getBounds(), { padding: [40, 40], maxZoom: 15 }); } catch(_) {}
+    try { map.fitBounds(layer.polyLayer.getBounds(), { padding: [60, 60] }); } catch(_) {}
   });
 
   // KML
@@ -2426,7 +2517,7 @@ dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-ove
 dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); processFiles([...e.dataTransfer.files]); });
 
 // ── HAMBURGER (móvil) ──
-const menuBtn  = document.getElementById('menu-btn');
+const menuBtn   = document.getElementById('menu-btn');
 const sidebarEl = document.querySelector('.sidebar');
 menuBtn.addEventListener('click', () => {
   const open = sidebarEl.classList.toggle('mobile-open');
@@ -2438,6 +2529,112 @@ document.getElementById('map').addEventListener('click', () => {
     sidebarEl.classList.remove('mobile-open');
     menuBtn.classList.remove('open');
   }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DRAW TOOL — dibujar polígono y añadir como capa
+// ═══════════════════════════════════════════════════════════════
+const drawBtn  = document.getElementById('draw-btn');
+const drawHint = document.getElementById('draw-hint');
+let drawActive       = false;
+let drawPoints       = [];
+let drawMarkers      = [];
+let drawPoly         = null;
+let drawPreview      = null;
+let drawCount        = 0;
+let drawSavedMode    = null;  // guarda el queryMode mientras se dibuja
+
+function startDraw() {
+  drawActive = true;
+  drawPoints = []; drawMarkers = []; drawPoly = null; drawPreview = null;
+  drawBtn.classList.add('active');
+  drawHint.classList.add('show');
+  map.getContainer().style.cursor = 'crosshair';
+  // Suspender consulta temporalmente para que los clics no abran popups
+  drawSavedMode = queryMode;
+  queryMode = 'none';
+  map.on('click',     onDrawClick);
+  map.on('mousemove', onDrawMove);
+  map.on('dblclick',  onDrawFinish);
+}
+
+function stopDraw(save) {
+  drawActive = false;
+  drawBtn.classList.remove('active');
+  drawHint.classList.remove('show');
+  map.getContainer().style.cursor = '';
+  map.off('click',     onDrawClick);
+  map.off('mousemove', onDrawMove);
+  map.off('dblclick',  onDrawFinish);
+  if (drawPoly)    { map.removeLayer(drawPoly);    drawPoly    = null; }
+  if (drawPreview) { map.removeLayer(drawPreview); drawPreview = null; }
+  drawMarkers.forEach(m => map.removeLayer(m));
+  drawMarkers = [];
+  // Restaurar el modo consulta que había antes de dibujar
+  if (drawSavedMode !== null) { queryMode = drawSavedMode; drawSavedMode = null; }
+
+  if (save && drawPoints.length >= 3) {
+    drawCount++;
+    const name = `Área dibujada ${drawCount}`;
+    const geojson = {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: {
+        type: 'Polygon',
+        coordinates: [[ ...drawPoints.map(p => [p.lng, p.lat]), [drawPoints[0].lng, drawPoints[0].lat] ]]
+      }, properties: { nombre: name } }]
+    };
+    addShpLayer(geojson, name);
+    toast(`"${name}" añadida a capas`, 'ok');
+  }
+  drawPoints = [];
+}
+
+function onDrawClick(e) {
+  // Ignorar el último clic del dblclick
+  if (e.originalEvent._drawSkip) return;
+
+  drawPoints.push(e.latlng);
+
+  // Vértice visual
+  const marker = L.circleMarker(e.latlng, {
+    radius: 5, color: '#e06c00', fillColor: '#e06c00',
+    fillOpacity: 1, weight: 2, interactive: false
+  }).addTo(map);
+  drawMarkers.push(marker);
+
+  refreshDrawLine();
+}
+
+function onDrawMove(e) {
+  if (!drawActive || drawPoints.length === 0) return;
+  if (drawPreview) map.removeLayer(drawPreview);
+  const pts = [...drawPoints, e.latlng];
+  if (drawPoints.length >= 2) pts.push(drawPoints[0]); // cerrar preview
+  drawPreview = L.polyline(pts, {
+    color: '#e06c00', weight: 1.5, dashArray: '5,4', opacity: 0.7, interactive: false
+  }).addTo(map);
+}
+
+function onDrawFinish(e) {
+  // Marcar el evento para que onDrawClick lo ignore
+  e.originalEvent._drawSkip = true;
+  stopDraw(true);
+}
+
+function refreshDrawLine() {
+  if (drawPoly) map.removeLayer(drawPoly);
+  if (drawPoints.length < 2) return;
+  const pts = drawPoints.length >= 3
+    ? [...drawPoints, drawPoints[0]]
+    : drawPoints;
+  drawPoly = L.polyline(pts, {
+    color: '#e06c00', weight: 2.5, opacity: 0.9, interactive: false
+  }).addTo(map);
+}
+
+drawBtn.addEventListener('click', () => {
+  if (drawActive) stopDraw(false);
+  else startDraw();
 });
 </script>
 </body>
