@@ -309,6 +309,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .layer-search-btn.green:hover { color: var(--green); background: var(--green-lt); }
 .layer-search-btn.green.active-search { color: var(--green); background: var(--green-lt); }
 
+/* ── YEAR SELECTOR ── */
+.year-sel {
+  font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+  color: var(--blue); background: var(--blue-lt);
+  border: 1px solid rgba(47,111,222,.25); border-radius: 5px;
+  padding: 3px 4px; cursor: pointer; outline: none;
+  transition: all .15s; flex-shrink: 0;
+}
+.year-sel:hover, .year-sel:focus { border-color: var(--blue); }
+
 /* ── CULTIVO layer color ── */
 :root { --cultivo: #1e8a4c; }
 
@@ -431,6 +441,22 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 }
 @keyframes geo-pulse { 0%{opacity:.6;transform:scale(1)} 100%{opacity:0;transform:scale(1.5)} }
 
+/* ── MEASURE BUTTONS ── */
+.measure-btn {
+  position: absolute; right: 12px; z-index: 999;
+  width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow); backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; color: var(--text2);
+}
+.measure-btn:hover { background: var(--blue-lt); color: var(--blue); border-color: rgba(47,111,222,.3); }
+.measure-btn.active { background: #9b27c8; color: #fff; border-color: #9b27c8; box-shadow: 0 0 0 3px rgba(155,39,200,.2), var(--shadow); }
+
+/* De abajo a arriba: GPS(130) → Lápiz(174) → Área(218) → Línea(262) */
+#measure-line-btn { bottom: 262px; }
+#measure-area-btn { bottom: 218px; }
+
 /* ── DRAW BUTTON (lápiz) ── */
 #draw-btn {
   position: absolute; bottom: 174px; right: 12px; z-index: 999;
@@ -444,7 +470,18 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 #draw-btn.active { background: #e06c00; color: #fff; border-color: #e06c00; box-shadow: 0 0 0 3px rgba(224,108,0,.25), var(--shadow); }
 #draw-btn.active:hover { background: #b85700; }
 
-/* Draw instructions tooltip */
+/* Popup de medida */
+#measure-popup {
+  position: absolute; z-index: 1100;
+  background: var(--glass); border: 1.5px solid #9b27c8;
+  border-radius: 10px; padding: 10px 14px;
+  font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+  color: #9b27c8; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+  pointer-events: none; display: none; white-space: nowrap;
+}
+#measure-popup .mp-sub { font-size: 9px; color: var(--muted); font-weight: 400; margin-top: 2px; display: block; }
+
+/* Draw hint tooltip */
 #draw-hint {
   position: absolute; bottom: 178px; right: 58px; z-index: 999;
   background: var(--glass); border: 1px solid var(--glass-border);
@@ -454,6 +491,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   white-space: nowrap; display: none; pointer-events: none;
 }
 #draw-hint.show { display: block; }
+
+/* Mobile: shift everything up proportionally */
+@media (max-width: 700px) {
+  #measure-line-btn { bottom: 310px; }
+  #measure-area-btn { bottom: 262px; }
+  #draw-btn         { bottom: 218px; }
+  #geolocate-btn    { bottom: 174px; }
+  .measure-btn      { width: 42px; height: 42px; }
+  #draw-btn         { width: 42px; height: 42px; }
+}
 
 .bm-btn.active { background: var(--blue); color: #fff; box-shadow: 0 1px 4px rgba(47,111,222,.4); }
 .bm-btn:not(.active):hover { background: var(--blue-lt); color: var(--blue); }
@@ -596,10 +643,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
         <div class="mini-drop-sub">JPG / TIFF<br>con GPS</div>
       </div>
       <div class="mini-drop" id="shp-dropzone">
-        <input type="file" id="shpFileInput" accept=".shp,.dbf,.shx,.prj,.zip" multiple>
+        <input type="file" id="shpFileInput" accept=".shp,.dbf,.shx,.prj,.zip,.xml,.kml,.kmz" multiple>
         <span class="mini-drop-icon">🗂️</span>
-        <div class="mini-drop-title">Shapefile</div>
-        <div class="mini-drop-sub">.shp+.dbf<br>o .zip</div>
+        <div class="mini-drop-title">Vectorial</div>
+        <div class="mini-drop-sub">SHP · KML<br>KMZ · XML</div>
       </div>
       <div class="mini-drop" id="txt-dropzone">
         <input type="file" id="txtFileInput" accept=".txt,.csv">
@@ -630,7 +677,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
       <div class="sec-label">Capas SIGPAC</div>
       <div class="layer-row">
         <div class="layer-color" style="background:var(--magenta);"></div>
-        <div class="layer-texts"><div class="layer-name">Recintos 2026</div></div>
+        <div class="layer-texts">
+          <div class="layer-name" id="recinto-year-label">Recintos 2026</div>
+        </div>
+        <select class="year-sel" id="recinto-year-sel" title="Cambiar año de recintos"
+          onchange="setRecintoYear(this.value)">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
         <button class="layer-search-btn" id="search-recinto-btn" title="Buscar recinto">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
@@ -681,6 +737,17 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   </div>
 
   <div id="map"></div>
+  <button class="measure-btn" id="measure-area-btn" title="Medir área">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+    </svg>
+  </button>
+  <button class="measure-btn" id="measure-line-btn" title="Medir distancia">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 12h20M2 12l4-4M2 12l4 4M22 12l-4-4M22 12l-4 4"/>
+    </svg>
+  </button>
+  <div id="measure-popup"><span id="measure-value"></span><span class="mp-sub" id="measure-sub"></span></div>
   <button id="draw-btn" title="Dibujar área">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -769,18 +836,39 @@ function setBasemap(type) {
 updateDateWatermark('sat');
 
 // ═══════════════════════════════════════════════════════════════
-// 2. WMS — RECINTOS + CULTIVO DECLARADO
+// 2. WMS — RECINTOS (multi-año) + CULTIVO DECLARADO
 // ═══════════════════════════════════════════════════════════════
-const WMS_URL        = 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac/MapServer/WMSServer';
-const CULTIVO_WMS    = 'https://sigpac-hubcloud.es/wms';
-const CULTIVO_LAYER  = 'cultivo_declarado';
 
-const wmsRecinto = L.tileLayer.wms(WMS_URL, {
-  layers: '0', format: 'image/png', transparent: true,
-  version: '1.1.1', crs: L.CRS.EPSG3857, uppercase: true,
-  opacity: 1.0, className: 'wms-magenta-filter',
-  maxZoom: 21, maxNativeZoom: 20
-}).addTo(map);
+// Configuración de todos los WMS de recintos disponibles
+const RECINTOS_WMS = {
+  '2026': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac/MapServer/WMSServer',
+  '2025': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac_2025/MapServer/WMSServer',
+  '2024': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac_2024/MapServer/WMSServer',
+  '2023': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac_2023/MapServer/WMSServer',
+};
+const CULTIVO_WMS   = 'https://sigpac-hubcloud.es/wms';
+const CULTIVO_LAYER = 'cultivo_declarado';
+
+// Año activo — persiste en localStorage
+const WMS_YEAR_KEY = 'geofotos_recintos_year';
+let activeRecintoYear = '2026';
+// WMS_URL y ARCGIS_REST_URL son siempre el año activo — se actualizan con setRecintoYear()
+let WMS_URL        = RECINTOS_WMS[activeRecintoYear];
+let ARCGIS_REST_URL = WMS_URL.replace('/WMSServer','/0/query').replace('/services/','/rest/services/');
+
+// Crear las 4 capas WMS (solo la activa se añade al mapa)
+const recintoLayers = {};
+for (const [year, url] of Object.entries(RECINTOS_WMS)) {
+  recintoLayers[year] = L.tileLayer.wms(url, {
+    layers: '0', format: 'image/png', transparent: true,
+    version: '1.1.1', crs: L.CRS.EPSG3857, uppercase: true,
+    opacity: 1.0, className: 'wms-magenta-filter',
+    maxZoom: 21, maxNativeZoom: 20
+  });
+}
+// Alias para compatibilidad con setBasemap y resto del código
+let wmsRecinto = recintoLayers[activeRecintoYear];
+wmsRecinto.addTo(map);
 
 const wmsCultivo = L.tileLayer.wms(CULTIVO_WMS, {
   layers: CULTIVO_LAYER, format: 'image/png', transparent: true,
@@ -789,12 +877,51 @@ const wmsCultivo = L.tileLayer.wms(CULTIVO_WMS, {
   maxZoom: 21, maxNativeZoom: 20
 }).addTo(map);
 
+// ── Cambiar año de recintos ──────────────────────────────────
+function setRecintoYear(year) {
+  if (!RECINTOS_WMS[year] || year === activeRecintoYear) return;
+
+  const wasVisible = map.hasLayer(wmsRecinto);
+
+  // Quitar capa anterior
+  map.removeLayer(wmsRecinto);
+
+  // Actualizar referencias globales
+  activeRecintoYear = year;
+  localStorage.setItem(WMS_YEAR_KEY, year);
+  WMS_URL         = RECINTOS_WMS[year];
+  ARCGIS_REST_URL = WMS_URL.replace('/WMSServer','/0/query').replace('/services/','/rest/services/');
+  wmsRecinto      = recintoLayers[year];
+
+  // Añadir nueva capa si el toggle está activo
+  if (wasVisible) wmsRecinto.addTo(map);
+
+  // Actualizar el select en el panel
+  const sel = document.getElementById('recinto-year-sel');
+  if (sel) sel.value = year;
+
+  // Actualizar label del año en el panel
+  const lbl = document.getElementById('recinto-year-label');
+  if (lbl) lbl.textContent = `Recintos ${year}`;
+
+  // Cerrar cualquier popup de consulta abierto (los datos cambiarían)
+  if (typeof closeQueryPopup === 'function') closeQueryPopup();
+  toast(`Capa de recintos cambiada a ${year}`);
+}
+
 document.getElementById('tog-recinto').addEventListener('change', e => {
   e.target.checked ? wmsRecinto.addTo(map) : map.removeLayer(wmsRecinto);
 });
 document.getElementById('tog-cultivo').addEventListener('change', e => {
   e.target.checked ? wmsCultivo.addTo(map) : map.removeLayer(wmsCultivo);
 });
+// Inicializar el select al año guardado (DOM ya existe)
+(function() {
+  const sel = document.getElementById('recinto-year-sel');
+  if (sel) sel.value = activeRecintoYear;
+  const lbl = document.getElementById('recinto-year-label');
+  if (lbl) lbl.textContent = `Recintos ${activeRecintoYear}`;
+})();
 
 // ── TRIPLE QUERY SWITCHER ──
 const QS_KEY = 'geofotos_querymode';
@@ -2086,6 +2213,237 @@ function exportShpKML(id) {
   } catch(err) { toast('Error al exportar KML: ' + err.message, 'err'); }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SHP WRITER — generador SHP binario embebido (sin CDN externos)
+// Soporta Polygon, MultiPolygon, Point, MultiPoint, LineString, MultiLineString
+// Produce: .shp + .shx + .dbf + .prj en un .zip (JSZip via cdnjs)
+// ═══════════════════════════════════════════════════════════════
+const SHP_PRJ_WGS84 = 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+
+// ── Helpers de escritura binaria ──────────────────────────────
+function makeWriter(size) {
+  const buf = new ArrayBuffer(size);
+  const dv  = new DataView(buf);
+  let pos = 0;
+  return {
+    i16be: v  => { dv.setInt16(pos, v, false);    pos += 2; },
+    i32be: v  => { dv.setInt32(pos, v, false);    pos += 4; },
+    i32le: v  => { dv.setInt32(pos, v, true);     pos += 4; },
+    f64le: v  => { dv.setFloat64(pos, v, true);   pos += 8; },
+    bytes: (b,n) => { new Uint8Array(buf, pos, n).set(b.subarray ? b.subarray(0,n) : b); pos += n; },
+    pos:   ()    => pos,
+    seek:  p     => { pos = p; },
+    buf:   ()    => buf
+  };
+}
+
+// ── Calcular bbox de coordenadas planas [[x,y],...] ──────────
+function ringBbox(ring) {
+  let xMin=Infinity,yMin=Infinity,xMax=-Infinity,yMax=-Infinity;
+  for (const [x,y] of ring) {
+    if (x<xMin)xMin=x; if (x>xMax)xMax=x;
+    if (y<yMin)yMin=y; if (y>yMax)yMax=y;
+  }
+  return {xMin,yMin,xMax,yMax};
+}
+function mergeBbox(a,b) {
+  return {
+    xMin:Math.min(a.xMin,b.xMin), yMin:Math.min(a.yMin,b.yMin),
+    xMax:Math.max(a.xMax,b.xMax), yMax:Math.max(a.yMax,b.yMax)
+  };
+}
+
+// ── Normalizar coordenadas de anillo (GeoJSON: [lng,lat]) ─────
+function flatRing(ring) { return ring.map(p => [p[0], p[1]]); }
+
+// ── Detector de tipo SHP ──────────────────────────────────────
+function shpType(fc) {
+  const types = new Set(fc.features.map(f => f.geometry?.type).filter(Boolean));
+  if ([...types].every(t => t==='Point'||t==='MultiPoint'))        return 1;  // Point
+  if ([...types].every(t => t==='LineString'||t==='MultiLineString')) return 3; // PolyLine
+  return 5; // Polygon (default)
+}
+
+// ── Extraer anillos de un feature según tipo ─────────────────
+function featureRings(geom, type) {
+  if (!geom) return [];
+  if (type === 1) { // Point
+    const pts = geom.type==='MultiPoint' ? geom.coordinates : [geom.coordinates];
+    return pts.map(p => [p]);
+  }
+  if (type === 3) { // PolyLine
+    const lines = geom.type==='MultiLineString' ? geom.coordinates : [geom.coordinates];
+    return lines;
+  }
+  // Polygon / MultiPolygon
+  const polys = geom.type==='MultiPolygon' ? geom.coordinates : [geom.coordinates];
+  return polys.flatMap(p => p); // array de anillos (exterior + huecos)
+}
+
+// ── Escribir un record SHP de tipo Polygon / PolyLine ─────────
+function writePolyRecord(rings) {
+  // rings = array de arrays de [x,y]
+  const flat = rings.map(flatRing);
+  const numParts  = flat.length;
+  const numPoints = flat.reduce((s,r) => s+r.length, 0);
+  // content length in 16-bit words (without 8-byte record header)
+  const contentLen = (4 + 32 + 4 + 4 + numParts*4 + numPoints*16) / 2;
+  const w = makeWriter(8 + contentLen*2);
+  let bbox = ringBbox(flat[0]);
+  flat.slice(1).forEach(r => { bbox = mergeBbox(bbox, ringBbox(r)); });
+
+  // record header: recNum written by caller, content length
+  w.i32be(0); // placeholder recNum
+  w.i32be(contentLen);
+  w.i32le(5); // shape type polygon (or 3 for polyline — caller overrides)
+  w.f64le(bbox.xMin); w.f64le(bbox.yMin);
+  w.f64le(bbox.xMax); w.f64le(bbox.yMax);
+  w.i32le(numParts);
+  w.i32le(numPoints);
+  let off = 0;
+  for (const r of flat) { w.i32le(off); off += r.length; }
+  for (const r of flat) for (const [x,y] of r) { w.f64le(x); w.f64le(y); }
+  return { buf: w.buf(), contentLen, bbox };
+}
+
+function writePointRecord(pt) {
+  // pt = [x,y]
+  const contentLen = (4 + 16) / 2; // 10 words
+  const w = makeWriter(8 + 20);
+  w.i32be(0); // placeholder
+  w.i32be(contentLen);
+  w.i32le(1);
+  w.f64le(pt[0]); w.f64le(pt[1]);
+  return { buf: w.buf(), contentLen, bbox:{xMin:pt[0],yMin:pt[1],xMax:pt[0],yMax:pt[1]} };
+}
+
+// ── DBF writer ────────────────────────────────────────────────
+function buildDbf(features) {
+  if (!features.length) return new Uint8Array(32+1).buffer;
+  const props = features[0].properties || {};
+  const fieldNames = Object.keys(props).map(k => k.slice(0,10).toUpperCase());
+  const numFields  = fieldNames.length;
+  const fieldLen   = 50; // caracteres por campo (C type)
+  const recSize    = 1 + numFields * fieldLen;
+  const headerSize = 32 + numFields * 32 + 1;
+  const buf = new ArrayBuffer(headerSize + features.length * recSize + 1);
+  const dv  = new DataView(buf);
+  const u8  = new Uint8Array(buf);
+  let p = 0;
+
+  // Header
+  u8[p++] = 3;           // version
+  const now = new Date();
+  u8[p++] = now.getFullYear()-1900; u8[p++] = now.getMonth()+1; u8[p++] = now.getDate();
+  dv.setUint32(4, features.length, true);
+  dv.setUint16(8, headerSize, true);
+  dv.setUint16(10, recSize, true);
+  p = 32;
+
+  // Field descriptors
+  const enc = new TextEncoder();
+  for (let i=0; i<fieldNames.length; i++) {
+    const nameBytes = enc.encode(fieldNames[i]);
+    u8.set(nameBytes.subarray(0,Math.min(11,nameBytes.length)), p);
+    p += 11;
+    u8[p++] = 67; // 'C' character
+    p += 4; // reserved
+    u8[p++] = fieldLen;
+    p += 15; // reserved
+  }
+  u8[p++] = 0x0D; // header terminator
+
+  // Records
+  const keys = Object.keys(props);
+  for (const f of features) {
+    u8[p++] = 0x20; // not deleted
+    for (const k of keys) {
+      const val = String(f.properties?.[k] ?? '').slice(0, fieldLen);
+      const vb  = enc.encode(val);
+      u8.fill(0x20, p, p+fieldLen); // pad with spaces
+      u8.set(vb.subarray(0, Math.min(fieldLen, vb.length)), p);
+      p += fieldLen;
+    }
+  }
+  u8[p] = 0x1A; // EOF
+  return buf;
+}
+
+// ── SHP + SHX builder ─────────────────────────────────────────
+function buildShpShx(fc, type) {
+  const records = [];
+  let totalContentWords = 0;
+
+  for (const f of fc.features) {
+    const rings = featureRings(f.geometry, type);
+    if (!rings.length) continue;
+
+    let rec;
+    if (type === 1) {
+      // Point: one record per feature (first point only if multi handled above)
+      const pts = f.geometry.type==='MultiPoint' ? f.geometry.coordinates : [f.geometry.coordinates];
+      for (const pt of pts) {
+        rec = writePointRecord(pt);
+        records.push(rec);
+        totalContentWords += 4 + rec.contentLen; // 4 = header words
+      }
+    } else {
+      rec = writePolyRecord(rings);
+      // Override shape type in record
+      const dv = new DataView(rec.buf);
+      dv.setInt32(12, type, true); // offset 8 (header) + 4 = shapeType
+      records.push(rec);
+      totalContentWords += 4 + rec.contentLen;
+    }
+  }
+
+  const fileLen   = 50 + totalContentWords; // in 16-bit words (50 = header)
+  const shpSize   = fileLen * 2;
+  const shxSize   = (50 + records.length * 4) * 2;
+
+  const shpBuf = new ArrayBuffer(shpSize);
+  const shxBuf = new ArrayBuffer(shxSize);
+  const shpDv  = new DataView(shpBuf);
+  const shxDv  = new DataView(shxBuf);
+
+  // Compute overall bbox
+  let bbox = {xMin:Infinity,yMin:Infinity,xMax:-Infinity,yMax:-Infinity};
+  for (const r of records) bbox = mergeBbox(bbox, r.bbox);
+  if (!isFinite(bbox.xMin)) bbox = {xMin:0,yMin:0,xMax:0,yMax:0};
+
+  // Write SHP header
+  function writeHeader(dv, fileLen, type, bbox) {
+    dv.setInt32(0,  9994,    false);
+    dv.setInt32(24, fileLen, false);
+    dv.setInt32(28, 1000,    true);
+    dv.setInt32(32, type,    true);
+    dv.setFloat64(36, bbox.xMin, true); dv.setFloat64(44, bbox.yMin, true);
+    dv.setFloat64(52, bbox.xMax, true); dv.setFloat64(60, bbox.yMax, true);
+  }
+  writeHeader(shpDv, fileLen, type, bbox);
+  writeHeader(shxDv, 50 + records.length*4, type, bbox);
+
+  // Write records
+  let shpOff = 100, shxOff = 100;
+  for (let i=0; i<records.length; i++) {
+    const r   = records[i];
+    const src = new Uint8Array(r.buf);
+    // Record header: recNum (1-based) + contentLen in 16-bit words
+    shpDv.setInt32(shpOff,   i+1,           false);
+    shpDv.setInt32(shpOff+4, r.contentLen,  false);
+    // Copy content (skip the 8-byte placeholder header from writePolyRecord)
+    new Uint8Array(shpBuf, shpOff+8).set(src.subarray(8, 8+r.contentLen*2));
+    // SHX record: offset and content length in 16-bit words
+    shxDv.setInt32(shxOff,   shpOff/2,      false);
+    shxDv.setInt32(shxOff+4, r.contentLen,  false);
+    shpOff += 8 + r.contentLen*2;
+    shxOff += 8;
+  }
+
+  return { shpBuf, shxBuf, dbfBuf: buildDbf(fc.features) };
+}
+
+// ── exportShpZip — entry point ────────────────────────────────
 async function exportShpZip(id) {
   const layer = shpLayers.find(l => l.id === id);
   if (!layer) return;
@@ -2095,13 +2453,19 @@ async function exportShpZip(id) {
     // Normalizar a FeatureCollection
     const fc = (() => {
       const g = layer.geojson;
-      if (!g) return { type: 'FeatureCollection', features: [] };
+      if (!g) return { type:'FeatureCollection', features:[] };
       if (g.type === 'FeatureCollection') return g;
-      if (Array.isArray(g)) return { type: 'FeatureCollection', features: g.flatMap(x => x.type === 'FeatureCollection' ? x.features : [x]) };
-      return { type: 'FeatureCollection', features: [g] };
+      if (Array.isArray(g)) return { type:'FeatureCollection',
+        features: g.flatMap(x => x.type==='FeatureCollection' ? x.features : [x]) };
+      return { type:'FeatureCollection', features:[g] };
     })();
 
-    // Lazy-load JSZip
+    if (!fc.features.length) { toast('La capa no tiene features', 'err'); return; }
+
+    const type = shpType(fc);
+    const { shpBuf, shxBuf, dbfBuf } = buildShpShx(fc, type);
+
+    // JSZip desde cdnjs (muy fiable)
     if (!window.JSZip) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
@@ -2111,97 +2475,29 @@ async function exportShpZip(id) {
       });
     }
 
-    // Lazy-load shp-write (versión que funciona en browser, sin dependencias)
-    if (!window.shpwrite) {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/gh/calvinmetcalf/shapefile-js@master/dist/shp.js';
-        s.onload = res;
-        s.onerror = () => {
-          // shpjs no tiene export — lo manejamos manualmente con GeoJSON + WKT
-          window.shpwrite = null;
-          res();
-        };
-        document.head.appendChild(s);
-      });
-    }
+    const zip  = new window.JSZip();
+    const name = layer.name
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quitar tildes: Á→A, é→e
+      .replace(/[^\w\-]/g, '_')                           // no alfanum → _
+      .replace(/^_+|_+$/g, '')                            // trim _
+      .slice(0, 30) || 'capa';
+    zip.file(name + '.shp', shpBuf);
+    zip.file(name + '.shx', shxBuf);
+    zip.file(name + '.dbf', dbfBuf);
+    zip.file(name + '.prj', SHP_PRJ_WGS84);
 
-    // Intentar con @mapbox/shp-write cargado inline como módulo UMD
-    // Usamos la versión publicada en unpkg que SÍ tiene build para browser
-    let zipBlob = null;
+    const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE',
+      compressionOptions:{ level:6 } });
 
-    // Estrategia A: usar shp-write 0.3.x (última versión estable con API browser)
-    try {
-      if (!window._shpwrite03) {
-        await new Promise((res, rej) => {
-          const s = document.createElement('script');
-          s.src = 'https://unpkg.com/shp-write@0.3.2/dist/write.js';
-          s.onload = res; s.onerror = rej;
-          document.head.appendChild(s);
-        });
-        window._shpwrite03 = window.shpwrite || window.write || null;
-        // shp-write 0.3 expone shpwrite global
-        if (!window._shpwrite03 && typeof shpwrite !== 'undefined') {
-          window._shpwrite03 = shpwrite;
-        }
-      }
-
-      if (window._shpwrite03 && typeof window._shpwrite03.zip === 'function') {
-        const content = window._shpwrite03.zip(fc);
-        // content es base64 en 0.3.x
-        const bin = atob(content);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        zipBlob = new Blob([bytes], { type: 'application/zip' });
-      }
-    } catch(e) { console.warn('shp-write 0.3 failed:', e.message); }
-
-    // Estrategia B: si no hay zipBlob, construir un zip con GeoJSON + CSV de atributos
-    if (!zipBlob) {
-      const zip = new window.JSZip();
-      const folder = zip.folder(layer.name);
-
-      // GeoJSON como archivo principal
-      folder.file(layer.name + '.geojson', JSON.stringify(fc, null, 2));
-
-      // CSV de atributos
-      const headers = fc.features.length
-        ? Object.keys(fc.features[0].properties || {})
-        : [];
-      if (headers.length) {
-        const csvRows = [headers.join(';')];
-        fc.features.forEach(f => {
-          csvRows.push(headers.map(h => {
-            const v = f.properties?.[h] ?? '';
-            return String(v).includes(';') ? `"${v}"` : v;
-          }).join(';'));
-        });
-        folder.file(layer.name + '.csv', csvRows.join('\n'));
-      }
-
-      // PRJ con WGS84
-      folder.file(layer.name + '.prj',
-        'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]');
-
-      folder.file('LEEME.txt',
-        'Este ZIP contiene la capa en formato GeoJSON y CSV de atributos.\n' +
-        'Puedes importar el archivo .geojson directamente en QGIS o ArcGIS.\n' +
-        'Para convertir a SHP usa QGIS: Capa > Guardar como > Shapefile.');
-
-      const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-      zipBlob = content;
-      toast(`SHP: descargando como GeoJSON+ZIP (shp-write no disponible)`, 'ok');
-    }
-
-    const url = URL.createObjectURL(zipBlob);
+    const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
-    a.href = url; a.download = layer.name + '.zip'; a.click();
+    a.href = url; a.download = name + '.zip'; a.click();
     URL.revokeObjectURL(url);
-    if (!toast._wasSet) toast(`"${layer.name}" descargado`, 'ok');
+    toast(`SHP "${layer.name}" descargado`, 'ok');
 
   } catch(err) {
-    console.error('exportShpZip error:', err);
-    toast('Error al exportar: ' + err.message, 'err');
+    console.error('exportShpZip:', err);
+    toast('Error al exportar SHP: ' + err.message, 'err');
   }
 }
 
@@ -2451,10 +2747,6 @@ async function handleTxtFile(file) {
 // El REST API está en:
 //   .../MapServer/0/query
 // y acepta WHERE con SQL estándar + outFields + returnGeometry=true&f=geojson
-const ARCGIS_REST_URL = WMS_URL
-  .replace('/WMSServer', '/0/query')
-  .replace('/services/', '/rest/services/');
-
 async function fetchSigpacGeometry(c) {
   // WHERE clause con los 7 campos del código SIGPAC
   const where = [
@@ -2576,15 +2868,18 @@ function stopDraw(save) {
   if (save && drawPoints.length >= 3) {
     drawCount++;
     const name = `Área dibujada ${drawCount}`;
+    const ring = [...drawPoints.map(p => [p.lng, p.lat]), [drawPoints[0].lng, drawPoints[0].lat]];
+    const areaSqM = Math.abs(L.GeometryUtil ? 0 : ringAreaSqM(drawPoints));
+    const areaM2  = ringAreaSqM(drawPoints);
+    const areaHa  = (areaM2 / 10000).toFixed(4);
     const geojson = {
       type: 'FeatureCollection',
       features: [{ type: 'Feature', geometry: {
-        type: 'Polygon',
-        coordinates: [[ ...drawPoints.map(p => [p.lng, p.lat]), [drawPoints[0].lng, drawPoints[0].lat] ]]
-      }, properties: { nombre: name } }]
+        type: 'Polygon', coordinates: [ring]
+      }, properties: { nombre: name, area_m2: Math.round(areaM2), area_ha: areaHa } }]
     };
     addShpLayer(geojson, name);
-    toast(`"${name}" añadida a capas`, 'ok');
+    toast(`"${name}" añadida · ${areaHa} ha`, 'ok');
   }
   drawPoints = [];
 }
@@ -2636,6 +2931,374 @@ drawBtn.addEventListener('click', () => {
   if (drawActive) stopDraw(false);
   else startDraw();
 });
+
+// ═══════════════════════════════════════════════════════════════
+// ÁREA DE UN POLÍGONO (fórmula de Shoelace en coordenadas esféricas)
+// ═══════════════════════════════════════════════════════════════
+function ringAreaSqM(latlngs) {
+  // Aproximación esférica (error <0.5% para parcelas agrícolas)
+  const R = 6378137;
+  const n = latlngs.length;
+  if (n < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const xi = latlngs[i].lng * Math.PI / 180;
+    const xj = latlngs[j].lng * Math.PI / 180;
+    const yi = Math.log(Math.tan(Math.PI / 4 + latlngs[i].lat * Math.PI / 360));
+    const yj = Math.log(Math.tan(Math.PI / 4 + latlngs[j].lat * Math.PI / 360));
+    area += (xj - xi) * (yj + yi);
+  }
+  return Math.abs(area / 2) * R * R;
+}
+
+function haversineM(a, b) {
+  const R = 6378137, toR = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toR;
+  const dLng = (b.lng - a.lng) * toR;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+
+function fmtArea(m2) {
+  if (m2 >= 10000) return (m2/10000).toFixed(4) + ' ha';
+  return m2.toFixed(1) + ' m²';
+}
+function fmtDist(m) {
+  if (m >= 1000) return (m/1000).toFixed(3) + ' km';
+  return m.toFixed(1) + ' m';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MEASURE TOOLS
+// ═══════════════════════════════════════════════════════════════
+const measureAreaBtn = document.getElementById('measure-area-btn');
+const measureLineBtn = document.getElementById('measure-line-btn');
+const measurePopup   = document.getElementById('measure-popup');
+const measureValue   = document.getElementById('measure-value');
+const measureSub     = document.getElementById('measure-sub');
+
+let measureMode    = null; // 'area' | 'line' | null
+let measurePoints  = [];
+let measureMarkers = [];
+let measureLine    = null;
+let measurePreview = null;
+let measureSavedQM = null;
+
+function showMeasurePopup(main, sub, latlng) {
+  const cp = map.latLngToContainerPoint(latlng);
+  const mapRect = document.getElementById('map').getBoundingClientRect();
+  measureValue.textContent = main;
+  measureSub.textContent   = sub || '';
+  measurePopup.style.display = 'block';
+  // Position above click
+  const W = measurePopup.offsetWidth || 160;
+  const H = measurePopup.offsetHeight || 50;
+  let x = mapRect.left + cp.x - W/2;
+  let y = mapRect.top  + cp.y - H - 48;
+  if (y < mapRect.top + 8) y = mapRect.top + cp.y + 20;
+  if (x < 8) x = 8;
+  if (x + W > window.innerWidth - 8) x = window.innerWidth - W - 8;
+  measurePopup.style.left = x + 'px';
+  measurePopup.style.top  = y + 'px';
+}
+function hideMeasurePopup() { measurePopup.style.display = 'none'; }
+
+function startMeasure(mode) {
+  // Cancel draw if active
+  if (drawActive) stopDraw(false);
+  // Toggle off if same mode
+  if (measureMode === mode) { stopMeasure(); return; }
+  stopMeasure();
+  measureMode = mode;
+  measurePoints = []; measureMarkers = [];
+  measureSavedQM = queryMode; queryMode = 'none';
+  measureAreaBtn.classList.toggle('active', mode === 'area');
+  measureLineBtn.classList.toggle('active', mode === 'line');
+  map.getContainer().style.cursor = 'crosshair';
+  const hint = mode === 'area'
+    ? 'Clic para medir área · Doble clic para finalizar'
+    : 'Clic para medir distancia · Doble clic para finalizar';
+  drawHint.textContent = hint;
+  drawHint.classList.add('show');
+  map.on('click',    onMeasureClick);
+  map.on('mousemove',onMeasureMove);
+  map.on('dblclick', onMeasureFinish);
+}
+
+function stopMeasure() {
+  if (!measureMode) return;
+  measureMode = null;
+  measureAreaBtn.classList.remove('active');
+  measureLineBtn.classList.remove('active');
+  map.getContainer().style.cursor = '';
+  drawHint.textContent = 'Clic para añadir vértices · Doble clic para cerrar';
+  drawHint.classList.remove('show');
+  map.off('click',    onMeasureClick);
+  map.off('mousemove',onMeasureMove);
+  map.off('dblclick', onMeasureFinish);
+  if (measureLine)    { map.removeLayer(measureLine);    measureLine    = null; }
+  if (measurePreview) { map.removeLayer(measurePreview); measurePreview = null; }
+  measureMarkers.forEach(m => map.removeLayer(m));
+  measureMarkers = []; measurePoints = [];
+  if (measureSavedQM !== null) { queryMode = measureSavedQM; measureSavedQM = null; }
+  hideMeasurePopup();
+}
+
+function onMeasureClick(e) {
+  if (e.originalEvent._drawSkip) return;
+  measurePoints.push(e.latlng);
+  const mk = L.circleMarker(e.latlng, {
+    radius:5, color:'#9b27c8', fillColor:'#9b27c8', fillOpacity:1, weight:2, interactive:false
+  }).addTo(map);
+  measureMarkers.push(mk);
+  refreshMeasureLine();
+  updateMeasureResult(e.latlng);
+}
+
+function onMeasureMove(e) {
+  if (!measureMode || measurePoints.length === 0) return;
+  if (measurePreview) map.removeLayer(measurePreview);
+  const pts = [...measurePoints, e.latlng];
+  if (measureMode === 'area' && measurePoints.length >= 2) pts.push(measurePoints[0]);
+  measurePreview = L.polyline(pts, {
+    color:'#9b27c8', weight:1.5, dashArray:'4,3', opacity:0.6, interactive:false
+  }).addTo(map);
+  updateMeasureResult(e.latlng, true);
+}
+
+function onMeasureFinish(e) {
+  e.originalEvent._drawSkip = true;
+  updateMeasureResult(measurePoints[measurePoints.length-1] || e.latlng, false, true);
+  // Keep the result visible — user clicks elsewhere to dismiss
+  map.off('click',    onMeasureClick);
+  map.off('mousemove',onMeasureMove);
+  map.off('dblclick', onMeasureFinish);
+  if (measurePreview) { map.removeLayer(measurePreview); measurePreview = null; }
+  map.getContainer().style.cursor = '';
+  drawHint.classList.remove('show');
+  if (measureSavedQM !== null) { queryMode = measureSavedQM; measureSavedQM = null; }
+  // Click anywhere to dismiss
+  map.once('click', () => {
+    if (measureLine)    { map.removeLayer(measureLine);    measureLine    = null; }
+    measureMarkers.forEach(m => map.removeLayer(m)); measureMarkers = []; measurePoints = [];
+    measureAreaBtn.classList.remove('active'); measureLineBtn.classList.remove('active');
+    measureMode = null; hideMeasurePopup();
+  });
+}
+
+function refreshMeasureLine() {
+  if (measureLine) map.removeLayer(measureLine);
+  if (measurePoints.length < 2) return;
+  const pts = (measureMode === 'area' && measurePoints.length >= 3)
+    ? [...measurePoints, measurePoints[0]] : measurePoints;
+  measureLine = L.polyline(pts, { color:'#9b27c8', weight:2.5, opacity:0.9, interactive:false }).addTo(map);
+}
+
+function updateMeasureResult(latlng, isMove, isFinal) {
+  if (measurePoints.length === 0) return;
+  let main, sub;
+  if (measureMode === 'line') {
+    let total = 0;
+    const pts = isMove ? [...measurePoints, latlng] : measurePoints;
+    for (let i=1; i<pts.length; i++) total += haversineM(pts[i-1], pts[i]);
+    main = fmtDist(total);
+    sub  = isFinal ? 'Distancia total' : `${pts.length-1} segmento${pts.length>2?'s':''}`;
+  } else {
+    const pts = isMove ? [...measurePoints, latlng] : measurePoints;
+    if (pts.length < 3) { main = '—'; sub = 'Necesitas ≥ 3 puntos'; }
+    else {
+      const llArr = pts.map(p => L.latLng(p.lat !== undefined ? p.lat : p[0], p.lng !== undefined ? p.lng : p[1]));
+      const m2 = ringAreaSqM(llArr);
+      main = fmtArea(m2);
+      sub  = isFinal ? 'Área total' : `${pts.length} vértice${pts.length>1?'s':''}`;
+    }
+  }
+  showMeasurePopup(main, sub, latlng);
+}
+
+measureAreaBtn.addEventListener('click', () => startMeasure('area'));
+measureLineBtn.addEventListener('click', () => startMeasure('line'));
+
+// ESC cancela la herramienta activa (medida o dibujo)
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (measureMode) { stopMeasure(); toast('Medición cancelada'); }
+  else if (drawActive) { stopDraw(false); toast('Dibujo cancelado'); }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTAR XML (SIGPAC) — parsea <WKT> + atributos
+// ═══════════════════════════════════════════════════════════════
+function parseWkt(wkt) {
+  if (!wkt || !wkt.trim()) return null;
+  const s = wkt.trim();
+  // Solo Polygon por ahora (el XML SIGPAC usa POLYGON)
+  const m = s.match(/^POLYGON\s*\(\((.+)\)\)$/i);
+  if (!m) return null;
+  const coords = m[1].split(',').map(pair => {
+    const [lng, lat] = pair.trim().split(/\s+/).map(Number);
+    return [lng, lat];
+  });
+  if (coords.length < 3) return null;
+  // Cerrar anillo
+  if (coords[0][0] !== coords[coords.length-1][0] || coords[0][1] !== coords[coords.length-1][1])
+    coords.push(coords[0]);
+  return { type: 'Polygon', coordinates: [coords] };
+}
+
+function getXmlText(el, tag) {
+  const node = el.querySelector(tag);
+  return node ? node.textContent.trim() : null;
+}
+
+async function handleXmlFile(file) {
+  const text = await file.text();
+  const doc  = new DOMParser().parseFromString(text, 'application/xml');
+  const lineas = [...doc.querySelectorAll('LINEA_DECLARACION')];
+  if (!lineas.length) { toast('No se encontraron LINEA_DECLARACION en el XML', 'err'); return; }
+
+  const features = [];
+  for (const linea of lineas) {
+    const wktStr = getXmlText(linea, 'WKT');
+    const geom   = parseWkt(wktStr);
+    if (!geom) continue;
+
+    const props = {};
+    for (const child of linea.children) {
+      const val = child.textContent.trim();
+      if (val) props[child.tagName] = isNaN(val) ? val : Number(val);
+    }
+    // Calcular área en ha a partir del WKT
+    const ring = geom.coordinates[0].map(([lng, lat]) => L.latLng(lat, lng));
+    const m2   = ringAreaSqM(ring);
+    props.area_ha  = (m2 / 10000).toFixed(4);
+    props.area_m2  = Math.round(m2);
+
+    features.push({ type: 'Feature', geometry: geom, properties: props });
+  }
+
+  if (!features.length) { toast('El XML no contiene geometrías WKT válidas', 'err'); return; }
+
+  const layerName = file.name.replace(/\.xml$/i, '');
+  const fc = { type: 'FeatureCollection', features };
+  addShpLayer(fc, layerName);
+  toast(`XML: ${features.length} recinto(s) importado(s)`, 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTAR KML / KMZ
+// ═══════════════════════════════════════════════════════════════
+async function handleKmlFile(file) {
+  let kmlText;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'kmz') {
+    // KMZ es un ZIP con un doc.kml dentro
+    if (!window.JSZip) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const buf  = await file.arrayBuffer();
+    const zip  = await window.JSZip.loadAsync(buf);
+    const kmlFile = Object.values(zip.files).find(f => f.name.toLowerCase().endsWith('.kml'));
+    if (!kmlFile) { toast('No se encontró .kml dentro del KMZ', 'err'); return; }
+    kmlText = await kmlFile.async('string');
+  } else {
+    kmlText = await file.text();
+  }
+
+  const fc = kmlToGeoJson(kmlText);
+  if (!fc.features.length) { toast('El KML no contiene geometrías válidas', 'err'); return; }
+
+  const layerName = file.name.replace(/\.(kml|kmz)$/i, '');
+  addShpLayer(fc, layerName);
+  toast(`KML: ${fc.features.length} elemento(s) importado(s)`, 'ok');
+}
+
+function kmlToGeoJson(kmlText) {
+  const doc   = new DOMParser().parseFromString(kmlText, 'application/xml');
+  const feats = [];
+
+  // Parsear coordenadas KML (lng,lat,alt separados por espacios)
+  const parseKmlCoords = str => str.trim().split(/\s+/).map(t => {
+    const [lng, lat] = t.split(',').map(Number);
+    return [lng, lat];
+  }).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+
+  // Nombre del placemark
+  const getName = pm => pm.querySelector('name')?.textContent.trim() || '';
+
+  for (const pm of doc.querySelectorAll('Placemark')) {
+    const name = getName(pm);
+    const props = { name };
+
+    // ExtendedData
+    for (const data of pm.querySelectorAll('Data')) {
+      const k = data.getAttribute('name');
+      const v = data.querySelector('value')?.textContent.trim();
+      if (k && v) props[k] = v;
+    }
+
+    // Point
+    const point = pm.querySelector('Point coordinates');
+    if (point) {
+      const [lng, lat] = point.textContent.trim().split(',').map(Number);
+      if (!isNaN(lng)) feats.push({ type:'Feature', geometry:{type:'Point',coordinates:[lng,lat]}, properties:props });
+      continue;
+    }
+
+    // LineString
+    const line = pm.querySelector('LineString coordinates');
+    if (line) {
+      const coords = parseKmlCoords(line.textContent);
+      if (coords.length >= 2) feats.push({ type:'Feature', geometry:{type:'LineString',coordinates:coords}, properties:props });
+      continue;
+    }
+
+    // Polygon (puede tener MultiGeometry)
+    const polys = pm.querySelectorAll('Polygon');
+    if (polys.length === 1) {
+      const outer = polys[0].querySelector('outerBoundaryIs coordinates');
+      if (outer) {
+        const exterior = parseKmlCoords(outer.textContent);
+        const holes    = [...polys[0].querySelectorAll('innerBoundaryIs coordinates')].map(n => parseKmlCoords(n.textContent));
+        const rings    = [exterior, ...holes];
+        feats.push({ type:'Feature', geometry:{type:'Polygon',coordinates:rings}, properties:props });
+      }
+    } else if (polys.length > 1) {
+      const coordinates = [];
+      for (const poly of polys) {
+        const outer = poly.querySelector('outerBoundaryIs coordinates');
+        if (!outer) continue;
+        const exterior = parseKmlCoords(outer.textContent);
+        const holes    = [...poly.querySelectorAll('innerBoundaryIs coordinates')].map(n => parseKmlCoords(n.textContent));
+        coordinates.push([exterior, ...holes]);
+      }
+      if (coordinates.length) feats.push({ type:'Feature', geometry:{type:'MultiPolygon',coordinates}, properties:props });
+    }
+  }
+  return { type:'FeatureCollection', features: feats };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTENDER handleShpFiles para enrutar XML y KML/KMZ
+// ═══════════════════════════════════════════════════════════════
+// Guardar referencia original y envolver
+const _origHandleShpFiles = handleShpFiles;
+async function handleShpFiles(files) {
+  const xmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.xml'));
+  const kmlFiles = files.filter(f => /\.(kml|kmz)$/i.test(f.name));
+  const shpFiles = files.filter(f => !/\.(xml|kml|kmz)$/i.test(f.name));
+
+  for (const f of xmlFiles) await handleXmlFile(f);
+  for (const f of kmlFiles) await handleKmlFile(f);
+  if (shpFiles.length) await _origHandleShpFiles(shpFiles);
+}
 </script>
 </body>
 </html>
