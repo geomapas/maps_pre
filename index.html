@@ -648,16 +648,25 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .auth-user-info { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 4px; }
 .auth-user-email { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text2); word-break: break-all; }
 
-/* Mobile: shift everything up proportionally */
+/* ── ELEMENTOS SOLO MÓVIL (ocultos en escritorio) ── */
+#mob-gps-btn,
+#mob-layers-btn,
+#mob-layers-panel,
+#mob-raster-btn,
+#mob-raster-panel,
+#mob-tools-zone,
+#mob-delete-confirm,
+#mobile-refresh-btn { display: none; }
+
+/* Mobile: ocultar botones de escritorio que serán reemplazados */
 @media (max-width: 700px) {
-  #measure-line-btn { bottom: 310px; }
-  #measure-area-btn { bottom: 262px; }
-  #draw-btn         { bottom: 218px; }
-  #geolocate-btn    { bottom: 174px; }
-  #globe-btn        { bottom: 354px; }
-  .measure-btn      { width: 42px; height: 42px; }
-  #draw-btn         { width: 42px; height: 42px; }
-  #globe-btn        { width: 42px; height: 42px; }
+  #measure-line-btn,
+  #measure-area-btn,
+  #draw-btn,
+  #geolocate-btn,
+  #globe-btn,
+  #menu-btn,
+  #basemap-switcher { display: none !important; }
 }
 
 #basemap-switcher { top: 12px; right: 12px; }
@@ -694,66 +703,333 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 
 /* ── RESPONSIVE MÓVIL ── */
 @media (max-width: 700px) {
-  :root { --panel-w: 280px; }
+  :root { --panel-w: 320px; }
 
   header { padding: 0 12px; height: 48px; gap: 6px; }
-  .logo-sub, .status-pill { display: none; }
+  .logo-sub, .status-pill, #hover-btn { display: none; }
   .logo-text { font-size: 15px; }
 
-  /* Hamburguesa: esquina superior DERECHA */
-  #menu-btn { display: flex; left: auto; right: 12px; top: 12px; }
+  /* Sidebar: ocultar en móvil (reemplazado por panel móvil) */
+  .sidebar { display: none !important; }
 
-  /* Sidebar: sale desde la DERECHA */
-  .sidebar {
-    top: 60px; right: 12px; left: auto; bottom: 12px;
-    width: var(--panel-w);
-    transform: translateX(calc(100% + 24px));
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
-    z-index: 900;
-  }
-  .sidebar.mobile-open { transform: translateX(0); }
-
-  /* En móvil: ocultar cards que no interesan */
-  .sidebar .upload-row,
-  .sidebar #sigpac-import-panel,
-  .sidebar .layers-card,
-  .sidebar #search-panel { display: none !important; }
-
-  /* Query switcher */
-  #query-switcher {
-    display: flex;
-    order: -1;
-    width: 100%;
-    margin-bottom: 0;
-  }
-
-  /* Search panel */
+  /* Search panel desktop: oculto */
   #search-panel { display: none !important; }
 
-  /* Basemap switcher */
-  #basemap-switcher {
-    top: auto; right: auto;
-    bottom: 90px; left: 12px;
-  }
-
-  /* Popup consulta */
+  /* Query popup: ancho completo */
   #query-popup {
     min-width: 0;
     max-width: calc(100vw - 24px);
     width: calc(100vw - 24px);
     left: 12px !important;
+    bottom: 100px;
+    top: auto !important;
   }
 
-  /* Zoom y geolocate */
-  #geolocate-btn { width: 42px; height: 42px; bottom: 130px; }
-  #draw-btn      { width: 42px; height: 42px; }
-  .leaflet-control-zoom a {
-    width: 36px !important; height: 36px !important;
-    line-height: 36px !important; font-size: 18px !important;
+  /* Zoom control */
+  .leaflet-control-zoom { display: none !important; }
+
+  /* Botones de herramientas de escritorio: ocultos en móvil */
+  .measure-btn { display: none !important; }
+
+  /* ── HEADER MÓVIL ── */
+  #mobile-refresh-btn {
+    display: flex !important;
   }
 
-  .qs-btn { font-size: 8px; padding: 7px 8px; }
-  .bm-btn { font-size: 8px; padding: 5px 8px; }
+  /* ── GPS BTN MÓVIL (esquina superior izquierda del mapa) ── */
+  #mob-gps-btn {
+    display: flex !important;
+    position: absolute;
+    top: 60px; left: 12px; z-index: 999;
+    width: 44px; height: 44px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    align-items: center; justify-content: center;
+    transition: all .2s; color: var(--text2);
+  }
+  #mob-gps-btn.active {
+    background: var(--blue); color: #fff; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(47,111,222,.25), var(--shadow);
+  }
+
+  /* ── LAYERS BTN MÓVIL (esquina superior derecha del mapa) ── */
+  #mob-layers-btn {
+    display: flex !important;
+    position: absolute;
+    top: 60px; right: 12px; z-index: 999;
+    width: 44px; height: 44px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    align-items: center; justify-content: center;
+    transition: all .2s; color: var(--text2);
+  }
+  #mob-layers-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* ── PANEL MÓVIL DE CAPAS ── */
+  #mob-layers-panel {
+    display: none;
+    position: absolute;
+    top: 114px; right: 12px; z-index: 950;
+    width: 290px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 14px; box-shadow: var(--shadow); backdrop-filter: blur(16px);
+    max-height: calc(100vh - 200px); overflow: hidden;
+    flex-direction: column;
+  }
+  #mob-layers-panel.open { display: flex !important; }
+
+  .mob-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px 8px; border-bottom: 1px solid rgba(220,225,232,.6); flex-shrink: 0;
+  }
+  .mob-panel-title {
+    font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--muted); font-weight: 700;
+  }
+  .mob-panel-close {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 14px; padding: 2px 6px; border-radius: 4px; line-height: 1;
+  }
+  .mob-panel-close:hover { color: var(--danger); }
+
+  .mob-panel-scroll { overflow-y: auto; flex: 1; padding: 10px 12px; }
+  .mob-panel-scroll::-webkit-scrollbar { width: 3px; }
+  .mob-panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* SIGPAC section en panel móvil */
+  .mob-sigpac-section { margin-bottom: 12px; }
+  .mob-sec-label {
+    font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block;
+  }
+  .mob-layer-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 0;
+  }
+  .mob-layer-color { width: 10px; height: 10px; flex-shrink: 0; border-radius: 2px; }
+  .mob-layer-name { flex: 1; font-size: 11px; font-weight: 700; color: var(--text); }
+  .mob-year-sel {
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    color: var(--blue); background: var(--blue-lt); border: 1px solid rgba(47,111,222,.25);
+    border-radius: 5px; padding: 3px 4px; cursor: pointer; outline: none;
+  }
+
+  /* Toggle switch móvil */
+  .mob-toggle-wrap input { display: none; }
+  .mob-toggle-wrap label {
+    display: block; width: 40px; height: 22px; border-radius: 11px;
+    background: var(--border2); cursor: pointer; position: relative; transition: background .2s;
+    flex-shrink: 0;
+  }
+  .mob-toggle-wrap label::after {
+    content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: all .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .mob-toggle-wrap input:checked + label { background: var(--blue); }
+  .mob-toggle-wrap input:checked + label::after { transform: translateX(18px); }
+
+  /* Divisor entre secciones del panel */
+  .mob-divider { height: 1px; background: rgba(220,225,232,.6); margin: 10px 0; }
+
+  /* Capas del proyecto en móvil */
+  .mob-project-section {}
+  .mob-layers-count {
+    font-family: 'Space Mono', monospace; font-size: 9px; color: var(--blue);
+    font-weight: 700; background: var(--blue-lt); border-radius: 10px; padding: 2px 8px;
+  }
+  .mob-project-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+
+  /* Item de capa en móvil */
+  .mob-layer-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 6px; border-radius: 8px; margin-bottom: 4px;
+    border: 1px solid transparent; transition: background .15s;
+  }
+  .mob-layer-item:hover { background: rgba(47,111,222,.05); border-color: rgba(47,111,222,.1); }
+  .mob-layer-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    cursor: pointer; border: 1.5px solid rgba(0,0,0,.12); position: relative;
+  }
+  .mob-layer-dot input[type=color] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+  .mob-layer-info { flex: 1; min-width: 0; }
+  .mob-layer-item-name {
+    font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; color: var(--text); cursor: pointer;
+  }
+  .mob-layer-item-sub { font-size: 9px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .mob-layer-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .mob-layer-share {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--s2); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text2); transition: all .15s; padding: 0;
+  }
+  .mob-layer-share:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .mob-layer-share svg { width: 13px; height: 13px; }
+  .mob-layer-del {
+    width: 26px; height: 26px; border-radius: 6px; border: none;
+    background: none; color: var(--muted); cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; transition: all .15s;
+  }
+  .mob-layer-del:hover { color: var(--danger); background: rgba(217,48,37,.08); }
+
+  /* ── SELECTOR RASTER INFERIOR DERECHO ── */
+  #mob-raster-btn {
+    display: flex !important;
+    position: absolute;
+    bottom: 16px; right: 12px; z-index: 999;
+    height: 36px; padding: 0 12px;
+    border-radius: 18px; border: 1px solid var(--glass-border);
+    background: var(--glass); backdrop-filter: blur(14px);
+    box-shadow: var(--shadow); cursor: pointer; color: var(--text2);
+    align-items: center; gap: 6px;
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    white-space: nowrap;
+  }
+  #mob-raster-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  #mob-raster-panel {
+    display: none;
+    position: absolute;
+    bottom: 60px; right: 12px; z-index: 998;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 6px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    flex-direction: column; gap: 2px; min-width: 130px;
+  }
+  #mob-raster-panel.open { display: flex !important; }
+  .mob-raster-opt {
+    padding: 7px 12px; border-radius: 7px; border: none; cursor: pointer;
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    text-align: left; background: transparent; color: var(--text2); transition: all .15s;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .mob-raster-opt:hover { background: var(--blue-lt); color: var(--blue); }
+  .mob-raster-opt.active { background: var(--blue); color: #fff; }
+  .mob-raster-year {
+    font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700;
+    color: var(--blue); background: var(--blue-lt); border: 1px solid rgba(47,111,222,.25);
+    border-radius: 4px; padding: 2px 5px; cursor: pointer; outline: none;
+  }
+  .mob-raster-opt.active .mob-raster-year { color: rgba(255,255,255,.8); background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.3); }
+
+  /* ── HERRAMIENTAS INFERIORES IZQUIERDAS ── */
+  #mob-tools-zone {
+    display: flex !important;
+    position: absolute;
+    bottom: 16px; left: 12px; z-index: 999;
+    align-items: flex-end; gap: 8px;
+  }
+
+  /* Botón principal herramientas (llave inglesa) */
+  .mob-tool-btn {
+    width: 44px; height: 44px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s; color: var(--text2); flex-shrink: 0;
+  }
+  .mob-tool-btn:hover { background: var(--blue-lt); color: var(--blue); }
+  .mob-tool-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+  /* Submenú herramientas (wrench) */
+  #mob-tools-submenu {
+    display: none;
+    position: absolute; bottom: 52px; left: 0;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 6px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    flex-direction: column; gap: 2px; min-width: 170px;
+  }
+  #mob-tools-submenu.open { display: flex !important; }
+  .mob-submenu-btn {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 11px; border-radius: 8px; border: none; cursor: pointer;
+    background: transparent; color: var(--text2); font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 600; transition: all .15s; text-align: left;
+  }
+  .mob-submenu-btn:hover { background: var(--blue-lt); color: var(--blue); }
+  .mob-submenu-btn.active { background: var(--blue); color: #fff; }
+  .mob-submenu-btn svg { flex-shrink: 0; }
+
+  /* Botón GPS medición */
+  #mob-gpsmeasure-btn { position: relative; }
+  /* Submenú GPS medición */
+  #mob-gpsmeasure-submenu {
+    display: none;
+    position: absolute; bottom: 52px; left: 0;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 8px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    flex-direction: column; gap: 6px; min-width: 140px;
+  }
+  #mob-gpsmeasure-submenu.open { display: flex !important; }
+  .mob-gps-state {
+    font-family: 'Space Mono', monospace; font-size: 8px; color: var(--muted);
+    text-align: center; padding: 2px 0; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .mob-gps-state.recording { color: var(--danger); }
+  .mob-gps-state.paused { color: #e06c00; }
+  .mob-gps-controls { display: flex; gap: 6px; }
+  .mob-gps-ctrl-btn {
+    flex: 1; height: 38px; border-radius: 8px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    gap: 4px; transition: all .2s;
+  }
+  #mob-gps-play-btn { background: var(--green); color: #fff; }
+  #mob-gps-play-btn:hover { background: #166038; }
+  #mob-gps-pause-btn { background: #e06c00; color: #fff; }
+  #mob-gps-pause-btn:hover { background: #b85700; }
+  #mob-gps-stop-btn { background: var(--danger); color: #fff; }
+  #mob-gps-stop-btn:hover { background: #b02520; }
+  #mob-gps-play-btn:disabled,
+  #mob-gps-pause-btn:disabled,
+  #mob-gps-stop-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* Botón consulta (lupa) */
+  #mob-query-btn { position: relative; }
+  /* Submenú consultas */
+  #mob-query-submenu {
+    display: none;
+    position: absolute; bottom: 52px; left: 0;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 6px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    flex-direction: column; gap: 2px; min-width: 160px;
+  }
+  #mob-query-submenu.open { display: flex !important; }
+  .mob-query-opt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 11px; border-radius: 8px; border: none; cursor: pointer;
+    background: transparent; color: var(--text2); font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 600; transition: all .15s; text-align: left;
+  }
+  .mob-query-opt:hover { background: var(--blue-lt); color: var(--blue); }
+  .mob-query-opt.active-recinto { background: var(--blue); color: #fff; }
+  .mob-query-opt.active-cultivo { background: var(--green); color: #fff; }
+  .mob-query-opt.active-none    { background: var(--s3); color: var(--text2); }
+
+  /* Panel confirmación eliminación móvil */
+  #mob-delete-confirm {
+    display: none;
+    position: fixed; inset: 0; z-index: 10100;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  #mob-delete-confirm.open { display: flex !important; }
+  .mob-confirm-card {
+    background: var(--surface); border-radius: 14px; padding: 22px;
+    width: 100%; max-width: 320px; box-shadow: var(--shadow);
+    border: 1px solid var(--border); display: flex; flex-direction: column; gap: 14px;
+  }
+  .mob-confirm-title { font-weight: 800; font-size: 16px; color: var(--text); }
+  .mob-confirm-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.5; }
+  .mob-confirm-actions { display: flex; gap: 8px; }
+  .mob-confirm-cancel {
+    flex: 1; padding: 10px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--s3); color: var(--text2); font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700;
+  }
+  .mob-confirm-delete {
+    flex: 1; padding: 10px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--danger); color: #fff; font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700;
+  }
 }
 </style>
 </head>
@@ -783,6 +1059,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
       <polyline points="16 16 12 12 8 16"/>
     </svg>
     <span>Mi Cuenta</span>
+  </button>
+
+  <!-- Botón Refrescar (solo móvil) -->
+  <button id="mobile-refresh-btn" style="display:none;" title="Recargar página" aria-label="Refrescar"
+    onclick="location.reload()"
+    style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.75);border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;transition:all .2s;">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
   </button>
   
   <div class="status-pill"><span class="dot"></span>WMS activo</div>
@@ -997,6 +1283,205 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 </div>
 
 
+
+<!-- ══════════════════════════════════════════════════════
+     CONTROLES EXCLUSIVOS MÓVIL (display:none en escritorio)
+     ═══════════════════════════════════════════════════════ -->
+
+<!-- GPS flotante superior izquierda -->
+<button id="mob-gps-btn" style="display:none;" title="Mi ubicación GPS" aria-label="GPS">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+    <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" opacity=".25"/>
+  </svg>
+</button>
+
+<!-- Capas flotante superior derecha -->
+<button id="mob-layers-btn" style="display:none;" title="Capas" aria-label="Capas">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+    <polyline points="2 17 12 22 22 17"/>
+    <polyline points="2 12 12 17 22 12"/>
+  </svg>
+</button>
+
+<!-- Panel de capas móvil -->
+<div id="mob-layers-panel">
+  <div class="mob-panel-header">
+    <span class="mob-panel-title">Capas</span>
+    <button class="mob-panel-close" id="mob-layers-close">✕</button>
+  </div>
+  <div class="mob-panel-scroll">
+    <!-- Sección SIGPAC -->
+    <div class="mob-sigpac-section">
+      <span class="mob-sec-label">Capas SIGPAC</span>
+      <div class="mob-layer-row">
+        <div class="mob-layer-color" style="background:var(--magenta);"></div>
+        <div class="mob-layer-name" id="mob-recinto-year-label">Recintos 2026</div>
+        <select class="mob-year-sel" id="mob-recinto-year-sel" onchange="setRecintoYear(this.value)">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+        <div class="mob-toggle-wrap">
+          <input type="checkbox" id="mob-tog-recinto" checked>
+          <label for="mob-tog-recinto"></label>
+        </div>
+      </div>
+      <div class="mob-layer-row" style="margin-top:6px;">
+        <div class="mob-layer-color" style="background:var(--green);"></div>
+        <div class="mob-layer-name">Cultivo Declarado</div>
+        <div class="mob-toggle-wrap">
+          <input type="checkbox" id="mob-tog-cultivo" checked>
+          <label for="mob-tog-cultivo"></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="mob-divider"></div>
+
+    <!-- Sección capas del proyecto -->
+    <div class="mob-project-section">
+      <div class="mob-project-header">
+        <span class="mob-sec-label" style="margin-bottom:0;">Capas del proyecto</span>
+        <span class="mob-layers-count" id="mob-layers-count">0</span>
+      </div>
+      <div id="mob-project-list">
+        <div id="mob-project-empty" style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);text-align:center;padding:16px 0;">Sin capas de proyecto</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Selector raster inferior derecho -->
+<button id="mob-raster-btn" style="display:none;" aria-label="Capa base">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+  </svg>
+  <span id="mob-raster-label">Earth</span>
+</button>
+<div id="mob-raster-panel">
+  <button class="mob-raster-opt" data-bm="earth" onclick="mobSetBasemap('earth')">Earth</button>
+  <button class="mob-raster-opt" data-bm="osm"   onclick="mobSetBasemap('osm')">Calles</button>
+  <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;">
+    <button class="mob-raster-opt" data-bm="sigpac" style="flex:1;padding:7px 8px;" onclick="mobSetBasemap('sigpac')">SIGPAC</button>
+    <select class="mob-raster-year" id="mob-orto-year-sel" onchange="setOrtoYear(this.value);if(activeBasemap==='sigpac')document.getElementById('mob-raster-label').textContent='SIGPAC '+this.value;">
+      <option value="2024">2024</option>
+      <option value="2022">2022</option>
+      <option value="2018">2018</option>
+      <option value="2015">2015</option>
+      <option value="2012">2012</option>
+    </select>
+  </div>
+</div>
+
+<!-- Zona herramientas inferior izquierda -->
+<div id="mob-tools-zone" style="display:none;">
+
+  <!-- Botón 1: herramientas (llave inglesa) -->
+  <div style="position:relative;">
+    <button class="mob-tool-btn" id="mob-wrench-btn" title="Herramientas" aria-label="Herramientas">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+      </svg>
+    </button>
+    <div id="mob-tools-submenu">
+      <button class="mob-submenu-btn" id="mob-sub-globe">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+        </svg>
+        Coordenadas
+      </button>
+      <button class="mob-submenu-btn" id="mob-sub-area">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+        </svg>
+        Medir área
+      </button>
+      <button class="mob-submenu-btn" id="mob-sub-line">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12h20M2 12l4-4M2 12l4 4M22 12l-4-4M22 12l-4 4"/>
+        </svg>
+        Medir distancia
+      </button>
+      <button class="mob-submenu-btn" id="mob-sub-draw">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Dibujar área
+      </button>
+    </div>
+  </div>
+
+  <!-- Botón 2: medición GPS -->
+  <div style="position:relative;" id="mob-gpsmeasure-btn">
+    <button class="mob-tool-btn" id="mob-gpsmeasure-toggle" title="Medición GPS" aria-label="Medición GPS">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+    </button>
+    <div id="mob-gpsmeasure-submenu">
+      <div class="mob-gps-state" id="mob-gps-state">Sin iniciar</div>
+      <!-- Selector tipo: área o línea -->
+      <div style="display:flex;background:var(--s3);border-radius:8px;padding:3px;gap:2px;margin-bottom:2px;">
+        <button id="mob-gps-type-area" style="flex:1;padding:5px 4px;border:none;border-radius:6px;cursor:pointer;font-family:'Space Mono',monospace;font-size:8px;font-weight:700;background:var(--blue);color:#fff;transition:all .15s;">Área</button>
+        <button id="mob-gps-type-line" style="flex:1;padding:5px 4px;border:none;border-radius:6px;cursor:pointer;font-family:'Space Mono',monospace;font-size:8px;font-weight:700;background:transparent;color:var(--muted);transition:all .15s;">Línea</button>
+      </div>
+      <div class="mob-gps-controls">
+        <button class="mob-gps-ctrl-btn" id="mob-gps-play-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <button class="mob-gps-ctrl-btn" id="mob-gps-pause-btn" disabled>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button class="mob-gps-ctrl-btn" id="mob-gps-stop-btn" disabled>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        </button>
+      </div>
+      <div id="mob-gps-pts-label" style="font-family:'Space Mono',monospace;font-size:8px;color:var(--muted);text-align:center;"></div>
+    </div>
+  </div>
+
+  <!-- Botón 3: consultas (lupa) -->
+  <div style="position:relative;" id="mob-query-btn">
+    <button class="mob-tool-btn" id="mob-query-toggle" title="Consultas" aria-label="Consultas">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </button>
+    <div id="mob-query-submenu">
+      <button class="mob-query-opt" id="mob-qs-none" data-mode="none">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        Sin consulta
+      </button>
+      <button class="mob-query-opt" id="mob-qs-recinto" data-mode="recinto">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Recinto
+      </button>
+      <button class="mob-query-opt" id="mob-qs-cultivo" data-mode="cultivo">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22V12M12 12C12 7 7 3 2 3c0 5 3 9 10 9zM12 12c0-5 5-9 10-9-0 5-3 9-10 9z"/></svg>
+        Cultivo
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confirm delete modal móvil -->
+<div id="mob-delete-confirm">
+  <div class="mob-confirm-card">
+    <div class="mob-confirm-title">Eliminar capa</div>
+    <div class="mob-confirm-sub" id="mob-confirm-sub">¿Eliminar esta capa? Esta acción no se puede deshacer y la capa también se borrará de la nube si está sincronizada.</div>
+    <div class="mob-confirm-actions">
+      <button class="mob-confirm-cancel" id="mob-confirm-cancel">Cancelar</button>
+      <button class="mob-confirm-delete" id="mob-confirm-delete">Eliminar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal de Autenticación en la Nube -->
 <div class="auth-modal" id="authModal">
@@ -3832,7 +4317,595 @@ async function rejectShare(reqId) {
   } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
-// Cerrar dropdown de descarga al hacer clic fuera + listeners de modales
+// ═══════════════════════════════════════════════════════════════
+// MÓVIL — Lógica exclusiva de la UX móvil
+// No modifica nada de la lógica de escritorio.
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  function isMobile() { return window.innerWidth <= 700; }
+  if (!isMobile()) return; // Solo ejecutar en móvil
+
+  // ── Sincronizar toggles SIGPAC ──────────────────────────────
+  const mobTogRecinto = document.getElementById('mob-tog-recinto');
+  const mobTogCultivo = document.getElementById('mob-tog-cultivo');
+  if (mobTogRecinto) {
+    mobTogRecinto.addEventListener('change', e => {
+      document.getElementById('tog-recinto').checked = e.target.checked;
+      document.getElementById('tog-recinto').dispatchEvent(new Event('change'));
+    });
+  }
+  if (mobTogCultivo) {
+    mobTogCultivo.addEventListener('change', e => {
+      document.getElementById('tog-cultivo').checked = e.target.checked;
+      document.getElementById('tog-cultivo').dispatchEvent(new Event('change'));
+    });
+  }
+
+  // Sincronizar selector año recintos
+  const mobRecintoYear = document.getElementById('mob-recinto-year-sel');
+  if (mobRecintoYear) {
+    const sel = document.getElementById('recinto-year-sel');
+    if (sel) mobRecintoYear.value = sel.value;
+    mobRecintoYear.addEventListener('change', e => {
+      if (mobRecintoYear.value !== sel.value) {
+        setRecintoYear(mobRecintoYear.value);
+      }
+      const lbl = document.getElementById('mob-recinto-year-label');
+      if (lbl) lbl.textContent = 'Recintos ' + mobRecintoYear.value;
+    });
+  }
+
+  // ── GPS flotante ────────────────────────────────────────────
+  const mobGpsBtn = document.getElementById('mob-gps-btn');
+  if (mobGpsBtn) {
+    // Proxy al botón de geolocalización de escritorio
+    mobGpsBtn.addEventListener('click', () => {
+      document.getElementById('geolocate-btn').click();
+      // Reflejar estado visual
+      setTimeout(() => {
+        if (document.getElementById('geolocate-btn').classList.contains('active')) {
+          mobGpsBtn.classList.add('active');
+        } else {
+          mobGpsBtn.classList.remove('active');
+        }
+      }, 100);
+    });
+    // Observar estado
+    const geoDesktop = document.getElementById('geolocate-btn');
+    if (geoDesktop) {
+      const observer = new MutationObserver(() => {
+        mobGpsBtn.classList.toggle('active', geoDesktop.classList.contains('active'));
+      });
+      observer.observe(geoDesktop, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+
+  // ── Panel de capas móvil ────────────────────────────────────
+  const mobLayersBtn   = document.getElementById('mob-layers-btn');
+  const mobLayersPanel = document.getElementById('mob-layers-panel');
+  const mobLayersClose = document.getElementById('mob-layers-close');
+
+  function openMobLayers() {
+    mobLayersPanel.classList.add('open');
+    mobLayersBtn.classList.add('active');
+    syncMobProjectLayers();
+  }
+  function closeMobLayers() {
+    mobLayersPanel.classList.remove('open');
+    mobLayersBtn.classList.remove('active');
+  }
+
+  if (mobLayersBtn)   mobLayersBtn.addEventListener('click', () => mobLayersPanel.classList.contains('open') ? closeMobLayers() : openMobLayers());
+  if (mobLayersClose) mobLayersClose.addEventListener('click', closeMobLayers);
+
+  // Cerrar al hacer clic en el mapa
+  document.getElementById('map').addEventListener('click', () => {
+    if (isMobile()) { closeMobLayers(); closeAllToolSubmenus(); closeMobRaster(); }
+  });
+
+  // ── Sincronizar capas de proyecto en panel móvil ────────────
+  function syncMobProjectLayers() {
+    const list = document.getElementById('mob-project-list');
+    const empty = document.getElementById('mob-project-empty');
+    if (!list) return;
+
+    // Limpiar solo items (no el empty)
+    [...list.querySelectorAll('.mob-layer-item')].forEach(el => el.remove());
+
+    const total = (typeof shpLayers !== 'undefined' ? shpLayers.length : 0);
+    const countEl = document.getElementById('mob-layers-count');
+    if (countEl) countEl.textContent = total;
+    if (empty) empty.style.display = total === 0 ? '' : 'none';
+
+    if (typeof shpLayers === 'undefined') return;
+    shpLayers.forEach(layer => {
+      const item = document.createElement('div');
+      item.className = 'mob-layer-item';
+      item.dataset.id = layer.id;
+      item.innerHTML = `
+        <div class="mob-toggle-wrap">
+          <input type="checkbox" id="mob-vis-${layer.id}" ${layer.visible ? 'checked' : ''}>
+          <label for="mob-vis-${layer.id}"></label>
+        </div>
+        <div class="mob-layer-dot" style="background:${layer.color}" title="Cambiar color">
+          <input type="color" value="${layer.color}">
+        </div>
+        <div class="mob-layer-info">
+          <div class="mob-layer-item-name" title="${layer.name}">${layer.name}</div>
+          <div class="mob-layer-item-sub">${layer.featureCount} recintos</div>
+        </div>
+        <div class="mob-layer-actions">
+          <button class="mob-layer-share" title="Compartir capa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+          </button>
+          <button class="mob-layer-del" title="Eliminar capa">✕</button>
+        </div>`;
+
+      // Toggle visibilidad
+      item.querySelector(`#mob-vis-${layer.id}`).addEventListener('change', e => {
+        e.stopPropagation();
+        layer.visible = e.target.checked;
+        if (e.target.checked) layer.leafletLayer.addTo(map);
+        else { map.removeLayer(layer.polyLayer); map.removeLayer(layer.pinLayer); }
+        // Sincronizar con el toggle de escritorio
+        const desktopVis = document.querySelector(`.list-item[data-id="${layer.id}"] .shp-vis`);
+        if (desktopVis) { desktopVis.checked = e.target.checked; }
+      });
+
+      // Cambio de color
+      const dot      = item.querySelector('.mob-layer-dot');
+      const colorIn  = item.querySelector('input[type=color]');
+      dot.addEventListener('click', e => { e.stopPropagation(); colorIn.click(); });
+      colorIn.addEventListener('input', e => {
+        layer.color = e.target.value;
+        dot.style.background = e.target.value;
+        layer.leafletLayer.setStyle({ color: e.target.value, fillColor: e.target.value });
+        if (typeof isFirebaseActive === 'function' && isFirebaseActive()) {
+          if (typeof updateShpColorInCloud === 'function') updateShpColorInCloud(layer.id, layer.color);
+        }
+        // Sincronizar con desktop
+        const desktopDot = document.querySelector(`.list-item[data-id="${layer.id}"] .shp-color-dot`);
+        if (desktopDot) desktopDot.style.background = e.target.value;
+      });
+
+      // Nombre click = fitBounds
+      item.querySelector('.mob-layer-item-name').addEventListener('click', e => {
+        e.stopPropagation();
+        try { map.fitBounds(layer.polyLayer.getBounds(), { padding: [60, 60] }); closeMobLayers(); } catch(_) {}
+      });
+
+      // Compartir
+      item.querySelector('.mob-layer-share').addEventListener('click', e => {
+        e.stopPropagation();
+        if (typeof openShareModal === 'function') openShareModal(layer);
+      });
+
+      // Eliminar con confirmación
+      item.querySelector('.mob-layer-del').addEventListener('click', e => {
+        e.stopPropagation();
+        showMobDeleteConfirm(layer.name, () => {
+          map.removeLayer(layer.polyLayer);
+          map.removeLayer(layer.pinLayer);
+          if (layer.leafletLayer._onZoom) map.off('zoomend', layer.leafletLayer._onZoom);
+          shpLayers.splice(shpLayers.findIndex(l => l.id === layer.id), 1);
+          // Eliminar del panel de escritorio
+          document.querySelector(`.list-item[data-id="${layer.id}"]`)?.remove();
+          if (typeof isFirebaseActive === 'function' && isFirebaseActive()) {
+            if (typeof deleteShpFromCloud === 'function') deleteShpFromCloud(layer.id);
+          }
+          if (typeof toast === 'function') toast(`Capa "${layer.name}" eliminada`);
+          if (typeof updateCounter === 'function') updateCounter();
+          syncMobProjectLayers();
+        });
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  // Observar cambios en shpLayers para actualizar contador
+  // (Se llama desde addShpLayer via updateCounter)
+  const _origUpdateCounter = typeof updateCounter !== 'undefined' ? updateCounter : null;
+  // Parchear updateCounter para también actualizar el contador móvil
+  if (typeof window !== 'undefined') {
+    const _prevCount = window.updateCounter;
+    window.updateCounterMobile = function() {
+      const total = (typeof shpLayers !== 'undefined' ? shpLayers.length : 0) + (typeof photos !== 'undefined' ? photos.length : 0);
+      const countEl = document.getElementById('mob-layers-count');
+      if (countEl) countEl.textContent = typeof shpLayers !== 'undefined' ? shpLayers.length : 0;
+    };
+  }
+
+  // Monitorear addShpLayer para actualizar el panel móvil cuando se añade una capa
+  const _origAddShpLayer = window.addShpLayer;
+  window.addShpLayerOrig = _origAddShpLayer;
+  // Parchear indirectamente via MutationObserver del unifiedList
+  const unifiedList = document.getElementById('unifiedList');
+  if (unifiedList) {
+    const mo = new MutationObserver(() => {
+      const countEl = document.getElementById('mob-layers-count');
+      if (countEl && typeof shpLayers !== 'undefined') countEl.textContent = shpLayers.length;
+      // Si el panel está abierto, refrescar
+      if (mobLayersPanel && mobLayersPanel.classList.contains('open')) syncMobProjectLayers();
+    });
+    mo.observe(unifiedList, { childList: true });
+  }
+
+  // ── Modal confirmar eliminación móvil ────────────────────────
+  let _mobDeleteCb = null;
+  const mobDeleteConfirm = document.getElementById('mob-delete-confirm');
+  document.getElementById('mob-confirm-cancel').addEventListener('click', () => {
+    mobDeleteConfirm.classList.remove('open');
+    _mobDeleteCb = null;
+  });
+  document.getElementById('mob-confirm-delete').addEventListener('click', () => {
+    mobDeleteConfirm.classList.remove('open');
+    if (_mobDeleteCb) { _mobDeleteCb(); _mobDeleteCb = null; }
+  });
+
+  function showMobDeleteConfirm(name, cb) {
+    const sub = document.getElementById('mob-confirm-sub');
+    if (sub) sub.textContent = `¿Eliminar la capa "${name}"? Esta acción no se puede deshacer y la capa también se borrará de la nube si está sincronizada.`;
+    _mobDeleteCb = cb;
+    mobDeleteConfirm.classList.add('open');
+  }
+
+  // ── Selector raster ─────────────────────────────────────────
+  const mobRasterBtn   = document.getElementById('mob-raster-btn');
+  const mobRasterPanel = document.getElementById('mob-raster-panel');
+  const mobRasterLabel = document.getElementById('mob-raster-label');
+
+  const RASTER_LABELS = { earth: 'Earth', osm: 'Calles', sat: 'Satélite', sigpac: 'SIGPAC' };
+
+  function closeMobRaster() {
+    mobRasterPanel.classList.remove('open');
+    mobRasterBtn.classList.remove('active');
+  }
+
+  function mobSetBasemap(type) {
+    setBasemap(type);
+    mobRasterLabel.textContent = type === 'sigpac' ? 'SIGPAC ' + activeOrtoYear : RASTER_LABELS[type];
+    document.querySelectorAll('.mob-raster-opt').forEach(b => {
+      b.classList.toggle('active', b.dataset.bm === type);
+    });
+    mobRasterBtn.classList.remove('active');
+    mobRasterPanel.classList.remove('open');
+  }
+  window.mobSetBasemap = mobSetBasemap;
+
+  if (mobRasterBtn) {
+    mobRasterBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      mobRasterPanel.classList.toggle('open');
+      mobRasterBtn.classList.toggle('active', mobRasterPanel.classList.contains('open'));
+    });
+  }
+  // Marcar active inicial
+  document.querySelectorAll('.mob-raster-opt').forEach(b => {
+    b.classList.toggle('active', b.dataset.bm === 'earth');
+  });
+
+  // Sync año ortofoto
+  const mobOrtoYear = document.getElementById('mob-orto-year-sel');
+  if (mobOrtoYear) {
+    mobOrtoYear.value = typeof activeOrtoYear !== 'undefined' ? activeOrtoYear : '2024';
+  }
+
+  // ── Herramientas inferiores ─────────────────────────────────
+  const mobWrenchBtn  = document.getElementById('mob-wrench-btn');
+  const mobToolsMenu  = document.getElementById('mob-tools-submenu');
+  const mobGpsMeasBtn = document.getElementById('mob-gpsmeasure-toggle');
+  const mobGpsMenu    = document.getElementById('mob-gpsmeasure-submenu');
+  const mobQueryToggle = document.getElementById('mob-query-toggle');
+  const mobQueryMenu  = document.getElementById('mob-query-submenu');
+
+  function closeAllToolSubmenus() {
+    mobToolsMenu.classList.remove('open');
+    mobGpsMenu.classList.remove('open');
+    mobQueryMenu.classList.remove('open');
+    mobWrenchBtn.classList.remove('active');
+    mobGpsMeasBtn.classList.remove('active');
+    mobQueryToggle.classList.remove('active');
+  }
+
+  // Wrench toggle
+  mobWrenchBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = mobToolsMenu.classList.contains('open');
+    closeAllToolSubmenus();
+    if (!isOpen) { mobToolsMenu.classList.add('open'); mobWrenchBtn.classList.add('active'); }
+  });
+
+  // Submenu items: proxies a las herramientas de escritorio
+  document.getElementById('mob-sub-globe').addEventListener('click', e => {
+    e.stopPropagation(); closeAllToolSubmenus();
+    document.getElementById('globe-btn').click();
+  });
+  document.getElementById('mob-sub-area').addEventListener('click', e => {
+    e.stopPropagation(); closeAllToolSubmenus();
+    document.getElementById('measure-area-btn').click();
+  });
+  document.getElementById('mob-sub-line').addEventListener('click', e => {
+    e.stopPropagation(); closeAllToolSubmenus();
+    document.getElementById('measure-line-btn').click();
+  });
+  document.getElementById('mob-sub-draw').addEventListener('click', e => {
+    e.stopPropagation(); closeAllToolSubmenus();
+    document.getElementById('draw-btn').click();
+  });
+
+  // ── GPS medición ─────────────────────────────────────────────
+  mobGpsMeasBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = mobGpsMenu.classList.contains('open');
+    closeAllToolSubmenus();
+    if (!isOpen) { mobGpsMenu.classList.add('open'); mobGpsMeasBtn.classList.add('active'); }
+  });
+
+  // Selector tipo área / línea
+  let gpsTrackType = 'area'; // 'area' | 'line'
+  const gpsTypeBtnArea = document.getElementById('mob-gps-type-area');
+  const gpsTypeBtnLine = document.getElementById('mob-gps-type-line');
+
+  function applyGpsTypeUI() {
+    const isArea = gpsTrackType === 'area';
+    gpsTypeBtnArea.style.background = isArea ? 'var(--blue)' : 'transparent';
+    gpsTypeBtnArea.style.color      = isArea ? '#fff' : 'var(--muted)';
+    gpsTypeBtnLine.style.background = !isArea ? 'var(--blue)' : 'transparent';
+    gpsTypeBtnLine.style.color      = !isArea ? '#fff' : 'var(--muted)';
+  }
+
+  gpsTypeBtnArea.addEventListener('click', e => {
+    e.stopPropagation();
+    if (gpsTrackState !== 'idle') return; // no cambiar tipo mientras graba
+    gpsTrackType = 'area';
+    applyGpsTypeUI();
+  });
+  gpsTypeBtnLine.addEventListener('click', e => {
+    e.stopPropagation();
+    if (gpsTrackState !== 'idle') return;
+    gpsTrackType = 'line';
+    applyGpsTypeUI();
+  });
+  applyGpsTypeUI();
+
+  // Estado GPS medición
+  let gpsTrackState = 'idle'; // idle | recording | paused
+  let gpsTrackWatchId = null;
+  let gpsTrackPoints = [];
+  let gpsTrackPolyline = null;
+  let gpsTrackCount = 0;
+
+  const gpsPlayBtn  = document.getElementById('mob-gps-play-btn');
+  const gpsPauseBtn = document.getElementById('mob-gps-pause-btn');
+  const gpsStopBtn  = document.getElementById('mob-gps-stop-btn');
+  const gpsStateEl  = document.getElementById('mob-gps-state');
+  const gpsPtsLabel = document.getElementById('mob-gps-pts-label');
+
+  function gpsUpdateUI() {
+    gpsStateEl.className = 'mob-gps-state';
+    // Selector de tipo: desactivar durante grabación/pausa
+    const canChangeType = gpsTrackState === 'idle';
+    gpsTypeBtnArea.style.opacity = canChangeType ? '1' : '.45';
+    gpsTypeBtnArea.style.cursor  = canChangeType ? 'pointer' : 'default';
+    gpsTypeBtnLine.style.opacity = canChangeType ? '1' : '.45';
+    gpsTypeBtnLine.style.cursor  = canChangeType ? 'pointer' : 'default';
+
+    if (gpsTrackState === 'idle') {
+      gpsStateEl.textContent = 'Sin iniciar';
+      gpsPlayBtn.disabled  = false;
+      gpsPauseBtn.disabled = true;
+      gpsStopBtn.disabled  = true;
+      gpsPtsLabel.textContent = '';
+    } else if (gpsTrackState === 'recording') {
+      gpsStateEl.textContent = '● Grabando…';
+      gpsStateEl.classList.add('recording');
+      gpsPlayBtn.disabled  = true;
+      gpsPauseBtn.disabled = false;
+      gpsStopBtn.disabled  = false;
+    } else if (gpsTrackState === 'paused') {
+      gpsStateEl.textContent = '⏸ Pausado';
+      gpsStateEl.classList.add('paused');
+      gpsPlayBtn.disabled  = false;
+      gpsPauseBtn.disabled = true;
+      gpsStopBtn.disabled  = false;
+    }
+    gpsPtsLabel.textContent = gpsTrackPoints.length > 0 ? gpsTrackPoints.length + ' puntos' : '';
+  }
+
+  function gpsStartWatch() {
+    if (!navigator.geolocation) { toast('Geolocalización no disponible', 'err'); return; }
+    if (gpsTrackWatchId !== null) return; // evitar duplicados
+    gpsTrackWatchId = navigator.geolocation.watchPosition(pos => {
+      if (gpsTrackState !== 'recording') return;
+      const { latitude: lat, longitude: lng } = pos.coords;
+      gpsTrackPoints.push([lat, lng]);
+      if (gpsTrackPolyline) {
+        gpsTrackPolyline.setLatLngs(gpsTrackPoints);
+      } else {
+        gpsTrackPolyline = L.polyline(gpsTrackPoints, {
+          color: '#e06c00', weight: 3, opacity: 0.9
+        }).addTo(map);
+      }
+      gpsUpdateUI();
+    }, err => {
+      const msgs = { 1:'Permiso denegado', 2:'Posición no disponible', 3:'Sin señal GPS' };
+      toast('GPS: ' + (msgs[err.code] || err.message), 'err');
+      gpsTrackState = 'idle';
+      gpsStopWatch();
+      gpsUpdateUI();
+    }, { enableHighAccuracy: true, maximumAge: 2000 });
+  }
+
+  function gpsStopWatch() {
+    if (gpsTrackWatchId !== null) {
+      navigator.geolocation.clearWatch(gpsTrackWatchId);
+      gpsTrackWatchId = null;
+    }
+  }
+
+  gpsPlayBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (gpsTrackState === 'idle') {
+      gpsTrackPoints = [];
+      if (gpsTrackPolyline) { map.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+      gpsTrackState = 'recording';
+      gpsStartWatch();
+      toast('Medición GPS iniciada (' + (gpsTrackType === 'area' ? 'área' : 'línea') + ')');
+    } else if (gpsTrackState === 'paused') {
+      gpsTrackState = 'recording';
+      gpsStartWatch();
+      toast('Medición GPS reanudada');
+    }
+    gpsUpdateUI();
+  });
+
+  gpsPauseBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    gpsTrackState = 'paused';
+    gpsStopWatch();
+    gpsUpdateUI();
+    toast('Medición GPS pausada');
+  });
+
+  gpsStopBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    gpsStopWatch();
+
+    if (gpsTrackType === 'area') {
+      // Modo área: necesita ≥ 3 puntos, cierra polígono
+      if (gpsTrackPoints.length < 3) {
+        toast('Se necesitan al menos 3 puntos para crear un área', 'err');
+        gpsTrackState = 'idle';
+        if (gpsTrackPolyline) { map.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+        gpsUpdateUI();
+        return;
+      }
+      const ring = [...gpsTrackPoints, gpsTrackPoints[0]];
+      const ringCoords = ring.map(([lat, lng]) => [lng, lat]);
+      gpsTrackCount++;
+      const name = `GPS Área ${gpsTrackCount}`;
+      const ringLL = gpsTrackPoints.map(([lat, lng]) => L.latLng(lat, lng));
+      const areaM2 = typeof ringAreaSqM === 'function' ? ringAreaSqM(ringLL) : 0;
+      const areaHa = (areaM2 / 10000).toFixed(4);
+      const geojson = {
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', geometry: {
+          type: 'Polygon', coordinates: [ringCoords]
+        }, properties: { nombre: name, area_m2: Math.round(areaM2), area_ha: areaHa } }]
+      };
+      if (gpsTrackPolyline) { map.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+      if (typeof addShpLayer === 'function') addShpLayer(geojson, name, null, true);
+      toast(`"${name}" creada · ${areaHa} ha`, 'ok');
+
+    } else {
+      // Modo línea: necesita ≥ 2 puntos, NO cierra el polígono
+      if (gpsTrackPoints.length < 2) {
+        toast('Se necesitan al menos 2 puntos para crear una línea', 'err');
+        gpsTrackState = 'idle';
+        if (gpsTrackPolyline) { map.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+        gpsUpdateUI();
+        return;
+      }
+      const lineCoords = gpsTrackPoints.map(([lat, lng]) => [lng, lat]);
+      gpsTrackCount++;
+      const name = `GPS Línea ${gpsTrackCount}`;
+      // Calcular longitud total
+      let totalM = 0;
+      for (let i = 1; i < gpsTrackPoints.length; i++) {
+        if (typeof haversineM === 'function') {
+          totalM += haversineM(
+            { lat: gpsTrackPoints[i-1][0], lng: gpsTrackPoints[i-1][1] },
+            { lat: gpsTrackPoints[i][0],   lng: gpsTrackPoints[i][1] }
+          );
+        }
+      }
+      const distLabel = typeof fmtDist === 'function' ? fmtDist(totalM) : totalM.toFixed(0) + ' m';
+      const geojson = {
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', geometry: {
+          type: 'LineString', coordinates: lineCoords
+        }, properties: { nombre: name, distancia_m: Math.round(totalM), distancia: distLabel } }]
+      };
+      if (gpsTrackPolyline) { map.removeLayer(gpsTrackPolyline); gpsTrackPolyline = null; }
+      if (typeof addShpLayer === 'function') addShpLayer(geojson, name, null, true);
+      toast(`"${name}" creada · ${distLabel}`, 'ok');
+    }
+
+    gpsTrackPoints = [];
+    gpsTrackState = 'idle';
+    gpsUpdateUI();
+    syncMobProjectLayers();
+  });
+
+  gpsUpdateUI();
+
+  // ── Consultas móvil ──────────────────────────────────────────
+  mobQueryToggle.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = mobQueryMenu.classList.contains('open');
+    closeAllToolSubmenus();
+    if (!isOpen) { mobQueryMenu.classList.add('open'); mobQueryToggle.classList.add('active'); }
+  });
+
+  function syncQueryBtns() {
+    document.querySelectorAll('.mob-query-opt').forEach(b => {
+      b.className = 'mob-query-opt';
+      if (b.dataset.mode === queryMode) b.classList.add('active-' + queryMode);
+    });
+    mobQueryToggle.classList.toggle('active', queryMode !== 'none');
+  }
+
+  document.querySelectorAll('.mob-query-opt').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      applyQueryMode(b.dataset.mode);
+      syncQueryBtns();
+      closeAllToolSubmenus();
+    });
+  });
+
+  // Observar cambios de queryMode para sincronizar botones móvil
+  const _origApplyQueryMode = window.applyQueryMode;
+  window.applyQueryMode = function(mode) {
+    _origApplyQueryMode(mode);
+    syncQueryBtns();
+  };
+
+  syncQueryBtns();
+
+  // ── Cerrar submenús al clic exterior ────────────────────────
+  document.addEventListener('click', () => {
+    if (isMobile()) {
+      closeAllToolSubmenus();
+      closeMobRaster();
+    }
+  });
+  document.getElementById('mob-tools-submenu').addEventListener('click', e => e.stopPropagation());
+  document.getElementById('mob-gpsmeasure-submenu').addEventListener('click', e => e.stopPropagation());
+  document.getElementById('mob-query-submenu').addEventListener('click', e => e.stopPropagation());
+  if (mobRasterPanel) mobRasterPanel.addEventListener('click', e => e.stopPropagation());
+  if (mobLayersPanel) mobLayersPanel.addEventListener('click', e => e.stopPropagation());
+
+  // ── Sincronizar estado herramientas de escritorio ───────────
+  // Observar botones de escritorio para reflejar estado activo
+  ['globe-btn', 'measure-area-btn', 'measure-line-btn', 'draw-btn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    new MutationObserver(() => {
+      // Si alguna herramienta de escritorio está activa, colapsar submenús
+    }).observe(btn, { attributes: true, attributeFilter: ['class'] });
+  });
+
+  // ── Init ─────────────────────────────────────────────────────
+  // Resolver año orto al inicio
+  if (mobOrtoYear && typeof activeOrtoYear !== 'undefined') {
+    mobOrtoYear.value = activeOrtoYear;
+  }
+
+})(); // fin IIFE móvil
 document.addEventListener('click', () => {
   document.querySelectorAll('.shp-dl-menu.open').forEach(m => m.classList.remove('open'));
 });
