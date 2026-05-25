@@ -2,7 +2,7 @@
   "name": "GEOmaps",
   "short_name": "GEOmaps",
   "description": "Visor SIGPAC con herramientas de campo",
-  "start_url": "./geomaps.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#2f6fde",
