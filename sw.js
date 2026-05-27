@@ -1,4 +1,4 @@
-const CACHE = 'geomaps-v1.6';
+const CACHE = 'geomaps-v1.7';
 const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
