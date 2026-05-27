@@ -882,8 +882,7 @@ body:has(#sel-tool-bar.open) #measure-popup { display: none !important; }
 
   header { padding: 0 12px; height: 48px; gap: 6px; }
   .logo-sub, .status-pill, #hover-btn { display: none; }
-  .offline-btn-label { display: none; }
-  #offline-btn { padding: 0 8px; }
+
   .logo-text { font-size: 26px; }
 
   /* Sidebar: ocultar en móvil (reemplazado por panel móvil) */
@@ -1452,13 +1451,6 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
     </svg>
   </button>
   
-  <!-- Botón offline -->
-  <button id="offline-btn" title="Guardar zona para uso offline" onclick="window.openOfflineModal && openOfflineModal()" style="display:flex;align-items:center;gap:5px;padding:0 10px;height:32px;border-radius:8px;background:rgba(255,255,255,.75);border:1.5px solid var(--border2);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;flex-shrink:0;">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 6l5 5 5-5"/><path d="M6 2v9"/><rect x="2" y="14" width="20" height="8" rx="2"/>
-    </svg>
-    <span class="offline-btn-label">Offline</span>
-  </button>
   <div class="status-pill"><span class="dot"></span>WMS activo</div>
 </header>
 
@@ -2567,7 +2559,7 @@ async function openShareLinkModal(layer) {
 
   try {
     const linkId = 'lnk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-    const serialized = JSON.stringify(layer.geojson);
+    const serialized = JSON.stringify(enrichGeojsonWithChecklist(layer.id, layer.geojson));
     if (serialized.length > 950000) {
       sub.textContent = 'La capa es demasiado grande para generar un enlace público.';
       return;
@@ -3423,6 +3415,54 @@ async function processGenericShpFiles(files) {
 const SHP_ZOOM_THRESHOLD = 14;
 const VISITED_COLOR = '#2e7d32'; // Verde para geometrías marcadas como visitadas
 
+// Lee el estado del checklist desde localStorage
+function getChecklistData(layerId, fIdx) {
+  try { return JSON.parse(localStorage.getItem(`cl_${layerId}_${fIdx}`) || 'null'); }
+  catch(e) { return null; }
+}
+
+// Devuelve un clon del geojson con _visitado / _comentario / _visit_ts en cada feature
+function enrichGeojsonWithChecklist(layerId, geojson) {
+  const clone = JSON.parse(JSON.stringify(geojson));
+  const feats = [];
+  const collect = g => {
+    if (!g) return;
+    if (Array.isArray(g)) { g.forEach(collect); return; }
+    if (g.type === 'FeatureCollection') g.features?.forEach(f => feats.push(f));
+    else if (g.type === 'Feature') feats.push(g);
+  };
+  collect(clone);
+  feats.forEach((f, idx) => {
+    f.properties = f.properties || {};
+    const saved = getChecklistData(layerId, idx);
+    f.properties._visitado  = saved?.visitado ? 1 : 0;
+    f.properties._comentari = (saved?.comentario || '').toString().slice(0, 250);
+    f.properties._visit_ts  = saved?.ts || '';
+  });
+  return clone;
+}
+
+// Al importar una capa con campos _visitado / _comentari, vuelca al localStorage
+function importChecklistFromFeatures(layerId, features) {
+  features.forEach((f, idx) => {
+    const p = f.properties || {};
+    const hasFlag = ('_visitado' in p) || ('_VISITADO' in p) || ('_comentari' in p) || ('_COMENTARI' in p);
+    if (!hasFlag) return;
+    const key = `cl_${layerId}_${idx}`;
+    if (localStorage.getItem(key)) return; // no pisar lo existente
+    const visitadoRaw = p._visitado ?? p._VISITADO ?? 0;
+    const visitado = (visitadoRaw === 1 || visitadoRaw === '1' || visitadoRaw === true || visitadoRaw === 'true');
+    const comentario = (p._comentari ?? p._COMENTARI ?? '').toString();
+    const ts = Number(p._visit_ts ?? p._VISIT_TS) || Date.now();
+    if (!visitado && !comentario) return;
+    try { localStorage.setItem(key, JSON.stringify({ visitado, comentario, ts })); } catch(_) {}
+    // Limpia las props internas para no contaminar la UI
+    delete p._visitado; delete p._VISITADO;
+    delete p._comentari; delete p._COMENTARI;
+    delete p._visit_ts; delete p._VISIT_TS;
+  });
+}
+
 // Actualiza el color de un feature concreto al marcar/desmarcar como visitado
 function updateFeatureVisitedStyle(layerId, featureIdx, visitado) {
   const layer = shpLayers.find(l => l.id === layerId);
@@ -3557,6 +3597,9 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
     else if (g.type === 'Feature') allFeatures.push(g);
   };
   collect(geojson);
+  // Importa checklist embebido (si el SHP/GeoJSON viene de export/share)
+  importChecklistFromFeatures(id, allFeatures);
+
 
   const polyLayer = L.geoJSON(geojson, {
     style: f => {
@@ -3606,13 +3649,23 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
     remove() { map.removeLayer(polyLayer); map.removeLayer(pinLayer); },
     getBounds() { return polyLayer.getBounds(); },
     setStyle(s) {
-      polyLayer.setStyle(s);
+      const newColor = s.color || color;
+      // Aplicar color por feature respetando visitados
+      let i = 0;
+      polyLayer.eachLayer(sub => {
+        const saved = getChecklistData(id, i);
+        const c = saved?.visitado ? VISITED_COLOR : newColor;
+        sub.setStyle({ color: c, fillColor: c, weight: 2, fillOpacity: 0.25 });
+        i++;
+      });
       pinLayer.clearLayers();
-      allFeatures.forEach(f => {
+      allFeatures.forEach((f, fIdx) => {
         const c = featureCentroid(f);
         if (!c) return;
-        L.marker(c, { icon: buildPinIcon(s.color || color) })
-          .bindPopup(() => buildPopupHtml(f.properties, id, allFeatures.indexOf(f)))
+        const saved = getChecklistData(id, fIdx);
+        const pc = saved?.visitado ? VISITED_COLOR : newColor;
+        L.marker(c, { icon: buildPinIcon(pc) })
+          .bindPopup(() => buildPopupHtml(f.properties, id, fIdx))
           .addTo(pinLayer);
       });
     }
@@ -3742,7 +3795,7 @@ function exportShpKML(id) {
   const layer = shpLayers.find(l => l.id === id);
   if (!layer) return;
   try {
-    const kml = tokml(layer.geojson);
+    const kml = tokml(enrichGeojsonWithChecklist(layer.id, layer.geojson));
     const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a'); a.href = url; a.download = layer.name + '.kml'; a.click();
@@ -3961,8 +4014,9 @@ async function exportShpZip(id) {
   toast('Generando SHP…');
 
   try {
+    const enriched = enrichGeojsonWithChecklist(layer.id, layer.geojson);
     const fc = (() => {
-      const g = layer.geojson;
+      const g = enriched;
       if (!g) return { type:'FeatureCollection', features:[] };
       if (g.type === 'FeatureCollection') return g;
       if (Array.isArray(g)) return { type:'FeatureCollection',
@@ -5180,7 +5234,7 @@ async function sendShareRequest() {
       return;
     }
     const recipientUid = snap.data().uid;
-    const serialized = JSON.stringify(layer.geojson);
+    const serialized = JSON.stringify(enrichGeojsonWithChecklist(layer.id, layer.geojson));
     if (serialized.length > 950000) {
       toast('La capa es demasiado grande para compartirla', 'err');
       return;
@@ -7100,179 +7154,6 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
-<!-- ── OFFLINE ZONE MODAL ── -->
-<div id="offline-modal" style="display:none; position:fixed; inset:0; z-index:10500; background:rgba(15,20,30,.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-  <div style="background:var(--glass); border:1.5px solid var(--blue); border-radius:16px; padding:24px 20px; width:320px; max-width:calc(100vw - 32px); box-shadow:var(--shadow); backdrop-filter:blur(16px); font-family:'DM Sans',sans-serif;">
-    <div style="font-size:15px; font-weight:800; color:var(--text); margin-bottom:4px;" id="offline-modal-title">Guardar zona para offline</div>
-    <div style="font-size:12px; color:var(--muted); margin-bottom:14px;" id="offline-modal-sub">Se guardarán los tiles del mapa visible en los zooms actuales.</div>
-
-    <!-- Selector de zooms -->
-    <div style="margin-bottom:12px;">
-      <div style="font-size:11px; font-weight:700; color:var(--text2); margin-bottom:6px;">Niveles de zoom a guardar</div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <label style="font-size:11px; color:var(--muted);">Desde</label>
-        <select id="offline-zoom-min" style="font-family:'DM Sans',sans-serif; font-size:11px; border:1px solid var(--border); border-radius:6px; padding:3px 6px; background:var(--s3); color:var(--text);">
-          <option value="10">10</option><option value="11">11</option><option value="12">12</option>
-          <option value="13">13</option><option value="14" selected>14</option><option value="15">15</option>
-        </select>
-        <label style="font-size:11px; color:var(--muted);">Hasta</label>
-        <select id="offline-zoom-max" style="font-family:'DM Sans',sans-serif; font-size:11px; border:1px solid var(--border); border-radius:6px; padding:3px 6px; background:var(--s3); color:var(--text);">
-          <option value="15">15</option><option value="16">16</option><option value="17" selected>17</option>
-          <option value="18">18</option><option value="19">19</option>
-        </select>
-      </div>
-      <div style="font-size:10px; color:var(--muted); margin-top:4px;" id="offline-tile-estimate">Estimando tiles…</div>
-    </div>
-
-    <!-- Barra de progreso (oculta hasta iniciar) -->
-    <div id="offline-progress-wrap" style="display:none; margin-bottom:12px;">
-      <div style="height:6px; background:var(--border); border-radius:3px; overflow:hidden;">
-        <div id="offline-progress-bar" style="height:100%; width:0%; background:var(--blue); transition:width .3s; border-radius:3px;"></div>
-      </div>
-      <div style="font-size:10px; color:var(--muted); margin-top:4px; text-align:center;" id="offline-progress-text">0 / 0 tiles</div>
-    </div>
-
-    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="share-btn primary" id="offline-start-btn">💾 Guardar zona</button>
-      <button class="share-btn secondary" id="offline-clear-btn">🗑 Borrar caché</button>
-      <button class="share-btn secondary" id="offline-close-btn">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── OFFLINE ZONE MANAGER ──
-(function() {
-  const modal      = document.getElementById('offline-modal');
-  const titleEl    = document.getElementById('offline-modal-title');
-  const subEl      = document.getElementById('offline-modal-sub');
-  const startBtn   = document.getElementById('offline-start-btn');
-  const clearBtn   = document.getElementById('offline-clear-btn');
-  const closeBtn   = document.getElementById('offline-close-btn');
-  const progressWrap = document.getElementById('offline-progress-wrap');
-  const progressBar  = document.getElementById('offline-progress-bar');
-  const progressText = document.getElementById('offline-progress-text');
-  const estimateEl   = document.getElementById('offline-tile-estimate');
-  const zoomMinEl    = document.getElementById('offline-zoom-min');
-  const zoomMaxEl    = document.getElementById('offline-zoom-max');
-
-  window.openOfflineModal = function() {
-    modal.style.display = 'flex';
-    progressWrap.style.display = 'none';
-    progressBar.style.width = '0%';
-    startBtn.disabled = false;
-    startBtn.textContent = '💾 Guardar zona';
-    updateEstimate();
-  };
-
-  closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
-  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
-
-  [zoomMinEl, zoomMaxEl].forEach(el => el.addEventListener('change', updateEstimate));
-
-  function updateEstimate() {
-    if (!window.map) return;
-    const bounds = window.map.getBounds();
-    const zMin = parseInt(zoomMinEl.value);
-    const zMax = parseInt(zoomMaxEl.value);
-    let total = 0;
-    for (let z = zMin; z <= zMax; z++) total += countTilesInBounds(bounds, z);
-    estimateEl.textContent = `≈ ${total.toLocaleString()} tiles · ~${Math.round(total * 15 / 1024)} MB estimados`;
-    estimateEl.style.color = total > 5000 ? 'var(--danger)' : 'var(--muted)';
-  }
-
-  startBtn.addEventListener('click', async () => {
-    if (!navigator.serviceWorker?.controller) {
-      alert('El Service Worker no está activo. Recarga la página e inténtalo de nuevo.');
-      return;
-    }
-    const bounds = window.map.getBounds();
-    const zMin = parseInt(zoomMinEl.value);
-    const zMax = parseInt(zoomMaxEl.value);
-
-    // Generar URLs de tiles para el mapa base activo
-    const tiles = generateTileUrls(bounds, zMin, zMax);
-    if (tiles.length > 8000) {
-      if (!confirm(`Se van a guardar ${tiles.length.toLocaleString()} tiles (~${Math.round(tiles.length*15/1024)} MB). ¿Continuar?`)) return;
-    }
-
-    startBtn.disabled = true;
-    startBtn.textContent = '⏳ Guardando…';
-    progressWrap.style.display = 'block';
-    progressBar.style.width = '0%';
-    progressText.textContent = `0 / ${tiles.length}`;
-
-    // Escuchar progreso del SW
-    const onMessage = (e) => {
-      if (e.data?.type === 'CACHE_PROGRESS') {
-        const pct = Math.round(e.data.saved / e.data.total * 100);
-        progressBar.style.width = pct + '%';
-        progressText.textContent = `${e.data.saved.toLocaleString()} / ${e.data.total.toLocaleString()} tiles`;
-      }
-      if (e.data?.type === 'CACHE_DONE') {
-        navigator.serviceWorker.removeEventListener('message', onMessage);
-        progressBar.style.width = '100%';
-        progressText.textContent = `✅ ${e.data.saved.toLocaleString()} tiles guardados`;
-        startBtn.disabled = false;
-        startBtn.textContent = '💾 Guardar zona';
-        subEl.textContent = 'Zona guardada. El mapa estará disponible sin conexión.';
-        subEl.style.color = 'var(--blue)';
-      }
-    };
-    navigator.serviceWorker.addEventListener('message', onMessage);
-    navigator.serviceWorker.controller.postMessage({ type: 'CACHE_TILES', tiles });
-  });
-
-  clearBtn.addEventListener('click', async () => {
-    if (!navigator.serviceWorker?.controller) return;
-    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_TILES' });
-    const onMsg = (e) => {
-      if (e.data?.type === 'TILES_CLEARED') {
-        navigator.serviceWorker.removeEventListener('message', onMsg);
-        subEl.textContent = 'Caché de tiles borrada.';
-        subEl.style.color = 'var(--muted)';
-      }
-    };
-    navigator.serviceWorker.addEventListener('message', onMsg);
-  });
-
-  // ── Helpers de tiles ──
-  function lon2tile(lon, zoom) { return Math.floor((lon + 180) / 360 * Math.pow(2, zoom)); }
-  function lat2tile(lat, zoom) { return Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom)); }
-
-  function countTilesInBounds(bounds, zoom) {
-    const xMin = lon2tile(bounds.getWest(), zoom),  xMax = lon2tile(bounds.getEast(), zoom);
-    const yMin = lat2tile(bounds.getNorth(), zoom), yMax = lat2tile(bounds.getSouth(), zoom);
-    return Math.abs((xMax - xMin + 1) * (yMax - yMin + 1));
-  }
-
-  function getActiveTileLayerUrl() {
-    // Intentar obtener la URL del layer activo de Leaflet
-    if (!window.map) return null;
-    let tileUrl = null;
-    window.map.eachLayer(layer => {
-      if (layer._url && layer._url.includes('{z}')) tileUrl = layer._url;
-    });
-    return tileUrl;
-  }
-
-  function generateTileUrls(bounds, zMin, zMax) {
-    const baseUrl = getActiveTileLayerUrl();
-    if (!baseUrl) return [];
-    const urls = [];
-    for (let z = zMin; z <= zMax; z++) {
-      const xMin = lon2tile(bounds.getWest(), z),  xMax = lon2tile(bounds.getEast(), z);
-      const yMin = lat2tile(bounds.getNorth(), z), yMax = lat2tile(bounds.getSouth(), z);
-      for (let x = xMin; x <= xMax; x++) {
-        for (let y = yMin; y <= yMax; y++) {
-          urls.push(baseUrl.replace('{z}', z).replace('{x}', x).replace('{y}', y).replace('{s}', 'a'));
-        }
-      }
-    }
-    return urls;
-  }
-})();
-</script>
 
 </body>
 </html>
