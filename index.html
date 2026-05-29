@@ -9,10 +9,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GEOmaps">
+<meta name="apple-mobile-web-app-title" content="GEOmapas">
 <meta name="theme-color" content="#2f6fde">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>GEOmaps</title>
+<title>GEOmapas</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%232f6fde'/><path d='M32 10 C22 10 15 18 15 27 C15 40 32 56 32 56 C32 56 49 40 49 27 C49 18 42 10 32 10 Z' fill='none' stroke='white' stroke-width='3.5' stroke-linejoin='round'/><circle cx='32' cy='27' r='7' fill='none' stroke='white' stroke-width='3'/></svg>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -176,9 +176,31 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .shp-spin { width: 12px; height: 12px; border: 2px solid var(--blue-lt); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.unified-list { flex: 1; overflow-y: auto; padding: 6px; }
-.unified-list::-webkit-scrollbar { width: 3px; }
-.unified-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.unified-list { flex: 1; overflow-y: scroll; padding: 6px; scroll-behavior: smooth; }
+.unified-list::-webkit-scrollbar { width: 6px; }
+.unified-list::-webkit-scrollbar-track { background: var(--s2); border-radius: 3px; margin: 3px 0; }
+.unified-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; min-height: 30px; }
+.unified-list::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── DRAG & DROP UNIVERSAL en el panel de capas ── */
+#layers-card-drop { position: relative; }
+.layers-drop-overlay {
+  display: none; position: absolute; inset: 0; z-index: 50;
+  border-radius: inherit;
+  background: rgba(47,111,222,.10);
+  border: 2.5px dashed var(--blue);
+  align-items: center; justify-content: center;
+  pointer-events: none;
+  transition: opacity .15s;
+}
+.layers-drop-overlay.active { display: flex; }
+.layers-drop-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  color: var(--blue);
+}
+.layers-drop-inner svg { opacity: .85; }
+.layers-drop-inner span { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; }
+.layers-drop-hint { font-family: 'DM Sans', sans-serif; font-size: 9px; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; }
 
 /* Item compartido */
 .list-item { display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 8px; cursor: pointer; transition: background .15s; border: 1px solid transparent; margin-bottom: 3px; }
@@ -186,12 +208,26 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
 .list-item.active { background: var(--blue-lt); border-color: rgba(47,111,222,.25); }
 .list-item.hidden-photo { opacity: .4; }
 
+/* Grupo de fotos */
+.photo-group { display: flex; flex-direction: column; gap: 0; margin-bottom: 3px; }
+.photo-group-header { display: flex; align-items: center; gap: 6px; padding: 6px 7px; border-radius: 8px; cursor: pointer; background: var(--s2); border: 1px solid var(--border); transition: background .15s; }
+.photo-group-header:hover { background: var(--blue-lt); }
+.group-toggle-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 0; font-size: 10px; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; transition: transform .15s; flex-shrink: 0; }
+.group-toggle-btn.collapsed { transform: rotate(-90deg); }
+.group-icon { font-size: 14px; flex-shrink: 0; }
+.group-label { flex: 1; font-size: 10px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.photo-group-children { padding-left: 16px; border-left: 2px solid var(--border); margin-left: 9px; margin-top: 2px; display: flex; flex-direction: column; gap: 0; }
+.photo-group-children.collapsed { display: none; }
+
+/* Botón seleccionar carpeta dentro del dropzone */
+
 /* Foto item */
 .photo-thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--s3); cursor: zoom-in; border: 1px solid var(--border); }
 .item-info { flex: 1; min-width: 0; }
 .item-name { font-size: 10px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
 .item-sub { font-size: 8.5px; color: var(--muted); font-family: 'DM Sans', sans-serif; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .az-badge { color: var(--blue); }
+
 
 /* SHP item dentro del panel unificado */
 .shp-edit-btn {
@@ -250,6 +286,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   padding: 10px; box-shadow: var(--shadow); width: 220px; flex-direction: column; gap: 8px;
 }
 #layer-edit-color-pop.open { display: flex; }
+#lbl-color-pop {
+  display: none; position: absolute; top: 42px; left: 0; z-index: 20;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+  padding: 10px; box-shadow: var(--shadow); width: 200px; flex-direction: column; gap: 8px;
+}
+#lbl-color-pop.open { display: flex; }
 .lec-swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 .lec-swatch {
   width: 100%; aspect-ratio: 1; border-radius: 6px; border: 2px solid transparent;
@@ -285,6 +327,40 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px;
   font-size: 12px; font-weight: 700; cursor: pointer; transition: background .15s;
 }
 .layer-edit-save:hover { background: #1e55bb; }
+
+/* ── ETIQUETAS DE CAPA (Leaflet tooltips permanentes) ── */
+.layer-label-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none !important;
+  text-align: center;
+}
+.layer-label-tooltip::before { display: none !important; }
+.layer-label-line { display: block; }
+
+/* ── SECCIÓN ETIQUETAS en modal edición ── */
+.lbl-section { display: flex; flex-direction: column; gap: 8px; }
+.lbl-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+.lbl-toggle-row .layer-edit-label { margin-bottom: 0; }
+.lbl-selects { display: flex; flex-direction: column; gap: 6px; }
+.lbl-select {
+  width: 100%; padding: 7px 10px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 12px;
+  color: var(--text); background: var(--surface); outline: none;
+  cursor: pointer; transition: border-color .15s;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a8299' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+}
+.lbl-select:focus { border-color: var(--blue); }
+.lbl-style-row { display: flex; gap: 10px; }
+.lbl-style-group { flex: 1; min-width: 0; }
 
 /* Botones de acción item */
 .item-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
@@ -1299,7 +1375,13 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
 .tool-action-btn.btn-back:hover  { background: var(--border2); }
 .tool-action-btn.btn-blue  { background: rgba(47,111,222,.1); color: var(--blue); }
 .tool-action-btn.btn-blue:hover  { background: var(--blue); color: #fff; }
+.tool-action-btn.btn-delete { background: rgba(217,48,37,.1); color: var(--danger); }
+.tool-action-btn.btn-delete:hover { background: var(--danger); color: #fff; }
 .tool-action-btn:disabled  { opacity: .35; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .sel-btn-text { display: none; }
+  .tool-action-btn { padding: 0 9px; }
+}
 
 /* Botones de control GPS (play/pause/stop) */
 .tool-ctrl-btn {
@@ -1426,7 +1508,7 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
       </svg>
     </div>
     <div>
-      <div class="logo-text"><span class="geo">geo</span><span class="fotos">maps</span></div>
+      <div class="logo-text"><span class="geo">geo</span><span class="fotos">mapas</span></div>
     </div>
   </div>
   <div class="header-sep"></div>
@@ -1477,6 +1559,7 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
         <div class="mini-drop-title">Fotos</div>
         <div class="mini-drop-sub">JPG / TIFF<br>con GPS</div>
       </div>
+
       <div class="mini-drop" id="shp-dropzone">
         <input type="file" id="shpFileInput" accept=".shp,.dbf,.shx,.prj,.zip,.xml,.kml,.kmz" multiple>
         <span class="mini-drop-icon">🗂️</span>
@@ -1533,7 +1616,7 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
     </div>
 
     <!-- Panel unificado fotos + SHP -->
-    <div class="glass-card layers-card">
+    <div class="glass-card layers-card" id="layers-card-drop">
       <div class="layers-card-header">
         <div class="sec-label">Capas del proyecto</div>
         <span class="layers-count" id="layers-count">0</span>
@@ -1543,6 +1626,14 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
       </div>
       <div class="unified-list" id="unifiedList">
         <div class="empty-unified" id="unified-empty">Sin fotos ni capas.<br>Añade contenido arriba.</div>
+      </div>
+      <!-- Overlay drag & drop -->
+      <div class="layers-drop-overlay" id="layers-drop-overlay">
+        <div class="layers-drop-inner">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="layers-drop-label">Suelta aquí para cargar</span>
+          <div class="layers-drop-hint" id="layers-drop-hint">SHP · ZIP · KML · KMZ · JPG · TXT · CSV · XML</div>
+        </div>
       </div>
     </div>
 
@@ -1966,6 +2057,10 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12h18"/></svg>
       Línea
     </button>
+    <button class="tool-type-btn" id="mob-draw-bar-point">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.686 2 6 4.686 6 8c0 5 6 14 6 14s6-9 6-14c0-3.314-2.686-6-6-6z"/><circle cx="12" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+      Punto
+    </button>
     <button class="tool-action-btn btn-back" id="mob-draw-bar-back" title="Borrar último punto">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>
     </button>
@@ -1992,9 +2087,13 @@ body:has(#mob-draw-bar.open) #measure-popup { display: none !important; }
     <button class="tool-action-btn btn-cancel" id="sel-tool-close" title="Cancelar">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
+    <button class="tool-action-btn btn-delete" id="sel-tool-delete" title="Borrar geometría de la capa" style="display:none;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      <span class="sel-btn-text">Borrar</span>
+    </button>
     <button class="tool-action-btn btn-save" id="sel-tool-save" title="Guardar selección como capa">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      Guardar
+      <span class="sel-btn-text">Guardar</span>
     </button>
   </div>
   <div class="tool-bar-row sel-count-mobile-row">
@@ -2115,7 +2214,7 @@ const ORTOFOTO_CONFIGS = {
   }),
 };
 
-const ORTOFOTO_YEAR_KEY = 'geomaps_ortofoto_year';
+const ORTOFOTO_YEAR_KEY = 'geomapas_ortofoto_year';
 let activeOrtoYear = localStorage.getItem(ORTOFOTO_YEAR_KEY) || '2024';
 
 // Crear el tile layer de la ortofoto activa
@@ -2213,12 +2312,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════
 const RECINTOS_WMS = {
   '2026': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac/MapServer/WMSServer',
-  '2025': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac_2025/MapServer/WMSServer',
+  // La Junta de CLM no mantiene un servicio WMS separado por año histórico;
+  // el servicio "Recintos_sigpac" se actualiza cada campaña (actualmente 2026).
+  // Se apunta al mismo endpoint para que la opción 2025 siga funcional.
+  '2025': 'https://geoservicios.castillalamancha.es/arcgis/services/Vector/Recintos_sigpac/MapServer/WMSServer',
 };
 const CULTIVO_WMS   = 'https://sigpac-hubcloud.es/wms';
 const CULTIVO_LAYER = 'cultivo_declarado';
 
-const WMS_YEAR_KEY = 'geomaps_recintos_year';
+const WMS_YEAR_KEY = 'geomapas_recintos_year';
 let activeRecintoYear = '2026';
 let WMS_URL        = RECINTOS_WMS[activeRecintoYear];
 let ARCGIS_REST_URL = WMS_URL.replace('/WMSServer','/0/query').replace('/services/','/rest/services/');
@@ -2274,7 +2376,7 @@ document.getElementById('tog-cultivo').addEventListener('change', e => {
 })();
 
 // ── TRIPLE QUERY SWITCHER ──
-const QS_KEY = 'geomaps_querymode';
+const QS_KEY = 'geomapas_querymode';
 let queryMode = localStorage.getItem(QS_KEY) || 'none';
 
 function applyQueryMode(mode) {
@@ -2298,18 +2400,77 @@ document.querySelectorAll('.qs-btn').forEach(b => {
 const photoGroup = L.layerGroup().addTo(map);
 const photos = [];
 
+const MAX_PHOTOS_PER_BATCH = 50;
 async function processFiles(files) {
-  for (const file of files) {
-    if (!file.type.startsWith('image/')) continue;
+  let imgFiles = [...files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|tiff?)$/i.test(f.name));
+  if (!imgFiles.length) { updateCounter(); return; }
+  if (imgFiles.length > MAX_PHOTOS_PER_BATCH) {
+    showToast(`Máximo ${MAX_PHOTOS_PER_BATCH} fotos por lote. Se cargarán las primeras ${MAX_PHOTOS_PER_BATCH} de ${imgFiles.length}.`, 'warn');
+    imgFiles = imgFiles.slice(0, MAX_PHOTOS_PER_BATCH);
+  }
+  const groupId = imgFiles.length >= 2 ? 'g_' + Math.random().toString(36).slice(2,9) : null;
+  let groupEl = null;
+  if (groupId) groupEl = createPhotoGroup(groupId, imgFiles.length);
+  for (const file of imgFiles) {
     try {
       const photo = await readPhotoData(file);
+      photo.groupId = groupId;
       photos.push(photo);
-      addPhotoToSidebar(photo);
+      addPhotoToSidebar(photo, groupEl);
       if (photo.lat !== null) addPhotoMarker(photo);
     } catch(e) { console.error(e); }
   }
   updateCounter();
 }
+
+function createPhotoGroup(groupId, count) {
+  const list = document.getElementById('unifiedList');
+  document.getElementById('unified-empty').style.display = 'none';
+  const wrap = document.createElement('div');
+  wrap.className = 'photo-group';
+  wrap.dataset.groupId = groupId;
+  wrap.innerHTML = `
+    <div class="photo-group-header">
+      <input type="checkbox" class="photo-vis group-vis" checked title="Mostrar/ocultar todas" style="width:14px;height:14px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;">
+      <button class="group-toggle-btn" title="Desplegar/contraer">▼</button>
+      <span class="group-icon">📷</span>
+      <div class="group-label">${count} fotos</div>
+      <div class="item-actions">
+        <button class="item-del" title="Eliminar todas">✕</button>
+      </div>
+    </div>
+    <div class="photo-group-children"></div>`;
+  const header = wrap.querySelector('.photo-group-header');
+  const children = wrap.querySelector('.photo-group-children');
+  const toggle = wrap.querySelector('.group-toggle-btn');
+  const groupVis = wrap.querySelector('.group-vis');
+  const collapse = () => { children.classList.add('collapsed'); toggle.classList.add('collapsed'); };
+  const expand = () => { children.classList.remove('collapsed'); toggle.classList.remove('collapsed'); };
+  toggle.onclick = e => { e.stopPropagation(); children.classList.contains('collapsed') ? expand() : collapse(); };
+  header.onclick = e => {
+    if (e.target.closest('.item-del') || e.target.closest('.group-vis') || e.target.closest('.group-toggle-btn')) return;
+    children.classList.contains('collapsed') ? expand() : collapse();
+  };
+  groupVis.addEventListener('change', e => {
+    e.stopPropagation();
+    const checked = groupVis.checked;
+    children.querySelectorAll('.list-item[data-type="photo"] .photo-vis').forEach(chk => {
+      if (chk.checked !== checked) { chk.checked = checked; chk.dispatchEvent(new Event('change')); }
+    });
+  });
+  wrap.querySelector('.item-del').onclick = e => {
+    e.stopPropagation();
+    if (!confirm(`¿Eliminar las ${children.children.length} fotos del grupo?`)) return;
+    const ids = [...children.querySelectorAll('.list-item[data-type="photo"]')].map(el => el.dataset.id);
+    ids.forEach(id => removePhoto(id));
+    wrap.remove();
+    updateCounter();
+  };
+  const firstShp = list.querySelector('.list-item[data-type="shp"]');
+  list.insertBefore(wrap, firstShp || document.getElementById('unified-empty'));
+  return wrap;
+}
+
 
 function readPhotoData(file) {
   return new Promise(resolve => {
@@ -2594,7 +2755,7 @@ async function loadSharedLayer(linkId) {
     const geojson = typeof data.geojson === 'string' ? JSON.parse(data.geojson) : data.geojson;
     // addShpLayer(geojson, name, cloudId, shouldSaveToCloud, shouldZoom)
     // Pass shouldSaveToCloud=false so it doesn't auto-save; user decides via banner
-    const layer = addShpLayer(geojson, data.name, null, false, true);
+    const layer = addShpLayer(geojson, data.name, null, false, true, data.color || null);
     if (!layer) { toast('Error al cargar la capa compartida', 'err'); return; }
     // Mostrar banner para que el usuario decida si añadir a su proyecto
     const banner = document.getElementById('share-banner');
@@ -2736,7 +2897,7 @@ function buildMultiPopup(key) {
 // ═══════════════════════════════════════════════════════════════
 // 5. SIDEBAR UNIFICADO
 // ═══════════════════════════════════════════════════════════════
-function addPhotoToSidebar(photo) {
+function addPhotoToSidebar(photo, groupEl) {
   const list = document.getElementById('unifiedList');
   document.getElementById('unified-empty').style.display = 'none';
 
@@ -2791,10 +2952,15 @@ function addPhotoToSidebar(photo) {
     }
   };
   card.querySelector('.item-del').onclick = e => { e.stopPropagation(); removePhoto(photo.id); };
-  const firstShp = list.querySelector('.list-item[data-type="shp"]');
-  list.insertBefore(card, firstShp || document.getElementById('unified-empty'));
+  if (groupEl) {
+    groupEl.querySelector('.photo-group-children').appendChild(card);
+  } else {
+    const firstShp = list.querySelector('.list-item[data-type="shp"]');
+    list.insertBefore(card, firstShp || document.getElementById('unified-empty'));
+  }
   updateCounter();
 }
+
 
 function removePhoto(id) {
   const idx = photos.findIndex(p => p.id === id);
@@ -2816,9 +2982,21 @@ function removePhoto(id) {
     }
   }
   photos.splice(idx, 1);
-  document.querySelector(`.list-item[data-id="${id}"]`)?.remove();
+  const itemEl = document.querySelector(`.list-item[data-id="${id}"]`);
+  const groupWrap = itemEl?.closest('.photo-group');
+  itemEl?.remove();
+  if (groupWrap) {
+    const children = groupWrap.querySelector('.photo-group-children');
+    if (!children.children.length) {
+      groupWrap.remove();
+    } else {
+      const label = groupWrap.querySelector('.group-label');
+      if (label) label.textContent = `${children.children.length} fotos`;
+    }
+  }
   updateCounter();
 }
+
 
 function updateCounter() {
   const total = photos.length + shpLayers.length;
@@ -3362,7 +3540,7 @@ applyQueryMode(queryMode);
 // 8. CAPAS SHP / CLOUD SYNC
 // ═══════════════════════════════════════════════════════════════
 const shpLayers = [];
-const SHP_PALETTE = ['#e06c00','#1e8a4c','#9b27c8','#c8270e','#0e8ec8','#2f6fde','#d4a017','#666'];
+const SHP_PALETTE = ['#e06c00','#9b27c8','#c8270e','#0e8ec8','#2f6fde','#d4a017','#b05a00','#666'];
 
 const shpFileInput  = document.getElementById('shpFileInput');
 const shpDropzone   = document.getElementById('shp-dropzone');
@@ -3395,9 +3573,14 @@ async function processGenericShpFiles(files) {
       })));
       const shpBuf = loaded.find(r => r.ext === 'shp').buffer;
       const dbfBuf = loaded.find(r => r.ext === 'dbf').buffer;
-      const prjBuf = loaded.find(r => r.ext === 'prj')?.buffer;
+      const prjEntry = loaded.find(r => r.ext === 'prj');
+      // Si no hay .prj, proyectar automáticamente a WGS84 (la proyección del mapa)
+      const prjStr = prjEntry
+        ? new TextDecoder().decode(prjEntry.buffer)
+        : SHP_PRJ_WGS84;
+      if (!prjEntry) console.info('SHP sin .prj — se asume WGS84 automáticamente.');
       geojson = await shp.combine([
-        shp.parseShp(shpBuf, prjBuf ? new TextDecoder().decode(prjBuf) : null),
+        shp.parseShp(shpBuf, prjStr),
         shp.parseDbf(dbfBuf)
       ]);
     }
@@ -3469,11 +3652,16 @@ function updateFeatureVisitedStyle(layerId, featureIdx, visitado) {
   if (!layer) return;
   const newColor = visitado ? VISITED_COLOR : layer.color;
 
-  // Actualizar polígono en polyLayer
+  // Actualizar polígono/línea/punto en polyLayer
   let fCount = 0;
   layer.polyLayer.eachLayer(sub => {
     if (fCount === featureIdx) {
-      sub.setStyle({ color: newColor, fillColor: newColor, weight: 2, fillOpacity: 0.25 });
+      if (typeof sub.setStyle === 'function') {
+        sub.setStyle({ color: newColor, fillColor: newColor, weight: 2, fillOpacity: 0.25 });
+      } else if (sub.setIcon) {
+        // Es un marker de punto — actualizar icono directamente
+        sub.setIcon(buildPinIcon(newColor));
+      }
     }
     fCount++;
   });
@@ -3573,12 +3761,18 @@ function buildPopupHtml(properties, layerId, featureIdx) {
 }
 
 // ── Agregar Capa Vectorial (Modificada con integración de base de datos) ──
-function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, shouldZoom = true) {
+function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, shouldZoom = true, forceColor = null) {
   const id    = cloudId || Math.random().toString(36).slice(2, 11);
   
   if (shpLayers.some(l => l.id === id)) return;
 
-  const color = SHP_PALETTE[shpLayers.length % SHP_PALETTE.length];
+  // Usar el color forzado (de nube/edición) o asignar uno nuevo de la paleta
+  // Nunca asignar el color verde reservado para "Visitado"
+  let paletteColor = SHP_PALETTE[shpLayers.length % SHP_PALETTE.length];
+  while (paletteColor === VISITED_COLOR) {
+    paletteColor = SHP_PALETTE[(shpLayers.length + 1) % SHP_PALETTE.length];
+  }
+  const color = (forceColor && forceColor !== VISITED_COLOR) ? forceColor : paletteColor;
 
   const countFeatures = g => {
     if (!g) return 0;
@@ -3608,6 +3802,13 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
       const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
       const c = saved?.visitado ? VISITED_COLOR : color;
       return { color: c, weight: 2, fillOpacity: 0.25, fillColor: c };
+    },
+    pointToLayer: (f, latlng) => {
+      const fIdx = allFeatures.indexOf(f);
+      const clKey = `cl_${id}_${fIdx}`;
+      const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
+      const c = saved?.visitado ? VISITED_COLOR : color;
+      return L.marker(latlng, { icon: buildPinIcon(c) });
     },
     onEachFeature: (f, l, fIdx = allFeatures.indexOf(f)) => { l.bindPopup(() => buildPopupHtml(f.properties, id, fIdx)); }
   });
@@ -3650,14 +3851,20 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
     getBounds() { return polyLayer.getBounds(); },
     setStyle(s) {
       const newColor = s.color || color;
-      // Aplicar color por feature respetando visitados
+      // Actualizar polyLayer: polígonos/líneas con setStyle, puntos recreando el marker
       let i = 0;
       polyLayer.eachLayer(sub => {
         const saved = getChecklistData(id, i);
         const c = saved?.visitado ? VISITED_COLOR : newColor;
-        sub.setStyle({ color: c, fillColor: c, weight: 2, fillOpacity: 0.25 });
+        if (typeof sub.setStyle === 'function') {
+          sub.setStyle({ color: c, fillColor: c, weight: 2, fillOpacity: 0.25 });
+        } else if (sub.setIcon) {
+          // Es un marker (punto) — recrear icono con nuevo color
+          sub.setIcon(buildPinIcon(c));
+        }
         i++;
       });
+      // Actualizar pinLayer (zoom alejado)
       pinLayer.clearLayers();
       allFeatures.forEach((f, fIdx) => {
         const c = featureCentroid(f);
@@ -3745,6 +3952,7 @@ function addShpToUnifiedList(layer) {
       map.removeLayer(layer.pinLayer);
     }
     item.classList.toggle('hidden-photo', !e.target.checked);
+    if (typeof syncLabelGroupVisibility === 'function') syncLabelGroupVisibility(layer.id);
   });
 
   item.querySelector('.item-name').addEventListener('click', e => {
@@ -3778,6 +3986,7 @@ function addShpToUnifiedList(layer) {
       shpLayers.splice(shpLayers.findIndex(l => l.id === layer.id), 1);
       item.remove();
       if (isFirebaseActive()) deleteShpFromCloud(layer.id);
+      if (typeof removeLayerLabels === 'function') removeLayerLabels(layer.id);
       toast(`Capa "${layer.name}" eliminada`);
       updateCounter();
     };
@@ -4351,9 +4560,52 @@ function toast(msg, type) {
 const fileInput = document.getElementById('fileInput');
 const dropzone  = document.getElementById('dropzone');
 fileInput.addEventListener('change', e => { processFiles([...e.target.files]); e.target.value=''; });
-dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); processFiles([...e.dataTransfer.files]); });
+
+// Lectura recursiva de carpetas arrastradas
+async function readEntryRecursive(entry, out) {
+  if (!entry) return;
+  if (entry.isFile) {
+    await new Promise(res => entry.file(f => { out.push(f); res(); }, () => res()));
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    const all = [];
+    await new Promise(res => {
+      const read = () => reader.readEntries(es => {
+        if (!es.length) return res();
+        all.push(...es); read();
+      }, () => res());
+      read();
+    });
+    for (const e of all) await readEntryRecursive(e, out);
+  }
+}
+async function filesFromDataTransfer(dt) {
+  const items = dt.items;
+  if (items && items.length && items[0].webkitGetAsEntry) {
+    const entries = [];
+    for (const it of items) { const en = it.webkitGetAsEntry?.(); if (en) entries.push(en); }
+    const out = [];
+    for (const en of entries) await readEntryRecursive(en, out);
+    return out;
+  }
+  return [...dt.files];
+}
+
+// Importante: el <input type=file> cubre el dropzone (inset:0) e intercepta el drop
+// rechazando carpetas. Adjuntamos los handlers también al input para soportarlas.
+function wirePhotoDrop(el) {
+  el.addEventListener('dragover',  e => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag-over'); });
+  el.addEventListener('dragleave', e => { e.stopPropagation(); dropzone.classList.remove('drag-over'); });
+  el.addEventListener('drop', async e => {
+    e.preventDefault(); e.stopPropagation();
+    dropzone.classList.remove('drag-over');
+    const files = await filesFromDataTransfer(e.dataTransfer);
+    processFiles(files);
+  });
+}
+wirePhotoDrop(dropzone);
+wirePhotoDrop(fileInput);
+
 
 // ── HAMBURGER ──
 const menuBtn   = document.getElementById('menu-btn');
@@ -4377,7 +4629,7 @@ const drawSubArea  = document.getElementById('draw-sub-area'); // legacy, oculto
 const drawSubLine  = document.getElementById('draw-sub-line'); // legacy, oculto vía CSS
 const drawHint     = document.getElementById('draw-hint');
 let drawActive       = false;
-let drawMode         = 'area'; // 'area' | 'line'
+let drawMode         = 'area'; // 'area' | 'line' | 'point'
 let drawPoints       = [];
 let drawMarkers      = [];
 let drawPoly         = null;
@@ -4385,13 +4637,14 @@ let drawPreview      = null;
 let drawCount        = 0;
 
 function setDrawMode(mode) {
-  if (drawActive && drawPoints.length > 0) return; // no cambiar tras empezar a marcar puntos
+  if (drawActive && drawPoints.length > 0) return;
   drawMode = mode;
-  // Sync barra unificada
   const a = document.getElementById('mob-draw-bar-area');
   const l = document.getElementById('mob-draw-bar-line');
+  const p = document.getElementById('mob-draw-bar-point');
   if (a) a.classList.toggle('active', mode === 'area');
   if (l) l.classList.toggle('active', mode === 'line');
+  if (p) p.classList.toggle('active', mode === 'point');
 }
 
 function startDraw() {
@@ -4403,7 +4656,9 @@ function startDraw() {
   drawBtn.classList.add('active');
   drawHint.textContent = drawMode === 'area'
     ? 'Clic para añadir vértices · Doble clic para cerrar · Retroceso = borrar último'
-    : 'Clic para añadir puntos · Doble clic para finalizar · Retroceso = borrar último';
+    : drawMode === 'line'
+    ? 'Clic para añadir puntos · Doble clic para finalizar · Retroceso = borrar último'
+    : 'Clic para añadir puntos · Pulsa Guardar para finalizar';
   drawHint.classList.add('show');
   map.getContainer().style.cursor = 'crosshair';
   map.on('click',     onDrawClick);
@@ -4457,6 +4712,16 @@ function stopDraw(save) {
         }, properties: { nombre: name, distancia_m: Math.round(totalM), distancia: fmtDist(totalM) } }]
       };
       showSaveLayerModal(geojson, name);
+    } else if (drawMode === 'point' && drawPoints.length >= 1) {
+      drawCount++;
+      const name = `Puntos ${drawCount}`;
+      const features = drawPoints.map((p, i) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: { nombre: `Punto ${i + 1}`, lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) }
+      }));
+      const geojson = { type: 'FeatureCollection', features };
+      showSaveLayerModal(geojson, name);
     }
   }
   drawPoints = [];
@@ -4482,10 +4747,11 @@ function refreshDrawMeasure() {
     for (let i=1; i<drawPoints.length; i++) total += haversineM(drawPoints[i-1], drawPoints[i]);
     label = fmtDist(total);
     showMeasurePopup(label, drawPoints.length - 1 + ' segmento' + (drawPoints.length > 2 ? 's' : ''));
+  } else if (drawMode === 'point') {
+    hideMeasurePopup();
   } else {
     hideMeasurePopup();
   }
-  // Actualizar también la barra móvil si está abierta
   const mobMeasure = document.getElementById('mob-draw-measure');
   if (mobMeasure) mobMeasure.textContent = label;
 }
@@ -4494,13 +4760,23 @@ function onDrawClick(e) {
   if (e.originalEvent._drawSkip) return;
   drawPoints.push(e.latlng);
 
+  // Colocar marker visible para todos los modos
   const marker = L.circleMarker(e.latlng, {
-    radius: 5, color: '#2f6fde', fillColor: '#2f6fde',
+    radius: drawMode === 'point' ? 7 : 5,
+    color: '#2f6fde', fillColor: '#2f6fde',
     fillOpacity: 1, weight: 2, interactive: false
   }).addTo(map);
   drawMarkers.push(marker);
-  refreshDrawLine();
-  refreshDrawMeasure();
+
+  if (drawMode !== 'point') {
+    refreshDrawLine();
+    refreshDrawMeasure();
+  } else {
+    // Mostrar contador de puntos en la barra
+    const mobMeasure = document.getElementById('mob-draw-measure');
+    if (mobMeasure) mobMeasure.textContent = `${drawPoints.length} punto${drawPoints.length > 1 ? 's' : ''}`;
+    showMeasurePopup(`${drawPoints.length} punto${drawPoints.length > 1 ? 's' : ''}`, 'Pulsa Guardar para finalizar');
+  }
 }
 
 function onDrawMove(e) {
@@ -4613,8 +4889,8 @@ function startMeasure(mode) {
   if (queryMode !== 'none') applyQueryMode('none');
   measureMode = mode;
   measurePoints = []; measureMarkers = [];
-  measureAreaBtn.classList.toggle('active', mode === 'area');
-  measureLineBtn.classList.toggle('active', mode === 'line');
+  measureAreaBtn?.classList.toggle('active', mode === 'area');
+  measureLineBtn?.classList.toggle('active', mode === 'line');
   map.getContainer().style.cursor = 'crosshair';
   const hint = mode === 'area'
     ? 'Clic para medir área · Doble clic para finalizar'
@@ -4732,8 +5008,10 @@ function resetDrawTool() {
   // Refresh bar UI
   const a = document.getElementById('mob-draw-bar-area');
   const l = document.getElementById('mob-draw-bar-line');
+  const p = document.getElementById('mob-draw-bar-point');
   if (a) a.classList.toggle('active', drawMode === 'area');
   if (l) l.classList.toggle('active', drawMode === 'line');
+  if (p) p.classList.toggle('active', drawMode === 'point');
 }
 
 document.addEventListener('keydown', e => {
@@ -5108,7 +5386,7 @@ function setupModoLocalNoConfigured() {
   appFirebase = null;
   auth = null;
   db = null;
-  console.log("Corriendo GEOmaps en Modo Local (Sincronización Cloud desactivada).");
+  console.log("Corriendo GEOmapas en Modo Local (Sincronización Cloud desactivada).");
   
   // Modificar el botón de cabecera de cuenta para avisar de forma nativa
   document.addEventListener("DOMContentLoaded", () => {
@@ -5142,12 +5420,16 @@ async function saveShpToCloud(layer) {
     if (serializedGeoJson.length > 950000) {
       throw new Error('Capa demasiado grande para sincronizar en la nube');
     }
+    const lblCfg = typeof layerLabels !== 'undefined' && layerLabels[layer.id]
+      ? JSON.stringify({ fields: layerLabels[layer.id].fields, visible: layerLabels[layer.id].visible })
+      : null;
     await docRef.set({
       id: layer.id,
       name: layer.name,
       geojson: serializedGeoJson,
       color: layer.color,
       featureCount: layer.featureCount,
+      ...(lblCfg ? { labels: lblCfg } : {}),
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     layer.synced = true;
@@ -6008,7 +6290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const url = document.getElementById('shareLinkBox').textContent;
     const layer = currentShareLayer;
     const subject = encodeURIComponent('Capa compartida: ' + (layer ? layer.name : ''));
-        const body = encodeURIComponent('Te comparto esta capa en GEOmaps:\n\n' + url);
+        const body = encodeURIComponent('Te comparto esta capa en GEOmapas:\n\n' + url);
     window.open('mailto:?subject=' + subject + '&body=' + body, '_blank');
   });
   sm.addEventListener('click', e => { if (e.target === sm) sm.classList.remove('open'); });
@@ -6032,18 +6314,39 @@ function setupRealtimeCloudSync(user) {
       if (change.type === "added") {
         try {
           const geojson = JSON.parse(data.geojson);
-          // Dibujar la capa que viene de la nube en el mapa local (sin volver a subirla)
-          addShpLayer(geojson, data.name, data.id, false, false);
+          // Restaurar color guardado en Firestore; si no hay, la paleta asignará uno
+          addShpLayer(geojson, data.name, data.id, false, false, data.color || null);
+          // Sincronizar color en el dot de la UI (por si la capa ya existía en lista)
+          if (data.color) {
+            const layer = shpLayers.find(l => l.id === data.id);
+            if (layer) {
+              layer.color = data.color;
+              const dot = document.querySelector(`[data-id="${data.id}"] .shp-color-dot`);
+              if (dot) dot.style.background = data.color;
+              const inp = document.querySelector(`[data-id="${data.id}"] .shp-color-input`);
+              if (inp) inp.value = data.color;
+            }
+          }
+          // Restaurar etiquetas si las hay
+          if (data.labels) {
+            const layer = shpLayers.find(l => l.id === data.id);
+            if (layer && typeof restoreLayerLabels === 'function') restoreLayerLabels(layer, data.labels);
+          }
         } catch (e) {
           console.error("Error al procesar capa sincronizada:", e);
         }
       } else if (change.type === "modified") {
         const layer = shpLayers.find(l => l.id === data.id);
-        if (layer && layer.color !== data.color) {
-          layer.color = data.color;
-          layer.leafletLayer.setStyle({ color: data.color, fillColor: data.color });
-          const dot = document.querySelector(`[data-id="${data.id}"] .shp-color-dot`);
-          if (dot) dot.style.background = data.color;
+        if (layer) {
+          if (layer.color !== data.color) {
+            layer.color = data.color;
+            layer.leafletLayer.setStyle({ color: data.color, fillColor: data.color });
+            const dot = document.querySelector(`[data-id="${data.id}"] .shp-color-dot`);
+            if (dot) dot.style.background = data.color;
+          }
+          if (data.labels && typeof restoreLayerLabels === 'function') {
+            restoreLayerLabels(layer, data.labels);
+          }
         }
       } else if (change.type === "removed") {
         const layerIdx = shpLayers.findIndex(l => l.id === data.id);
@@ -6052,6 +6355,7 @@ function setupRealtimeCloudSync(user) {
           map.removeLayer(layer.polyLayer);
           map.removeLayer(layer.pinLayer);
           if (layer.leafletLayer._onZoom) map.off('zoomend', layer.leafletLayer._onZoom);
+          if (typeof removeLayerLabels === 'function') removeLayerLabels(data.id);
           shpLayers.splice(layerIdx, 1);
           document.querySelector(`.list-item[data-id="${data.id}"]`)?.remove();
           updateCounter();
@@ -6139,8 +6443,6 @@ if (auth !== null) {
       authViewForm.style.display = 'none';
       authViewUser.style.display = 'block';
       
-      // Iniciar el listener de Firestore en tiempo real para traer datos de la nube
-      setupRealtimeCloudSync(user);
       // Registrar este correo en el índice global para que otros usuarios puedan compartir conmigo
       registerUserEmail(user);
       // Escuchar invitaciones de capas compartidas entrantes
@@ -6148,8 +6450,25 @@ if (auth !== null) {
 
       // Sincronizar capas locales actuales que se hayan cargado antes de loguearse
       shpLayers.forEach(layer => saveShpToCloud(layer));
-      // Sincronizar checklists desde Firestore
-      document.dispatchEvent(new CustomEvent('cl-sync-firestore', { detail: { uid: user.uid } }));
+
+      // Sincronizar checklists desde Firestore PRIMERO, y después iniciar el listener de capas.
+      // Así, cuando addShpLayer se ejecute para las capas que llegan de la nube,
+      // ya encontrará los datos de visitado en localStorage y pintará los colores correctos.
+      const _clSyncEvent = new CustomEvent('cl-sync-firestore', { detail: { uid: user.uid } });
+      const _clSyncPromise = new Promise(resolve => {
+        document.addEventListener('cl-sync-firestore', async function _handler(ev) {
+          document.removeEventListener('cl-sync-firestore', _handler);
+          // Dejar que el handler real se ejecute primero, luego resolver
+          await new Promise(r => setTimeout(r, 0));
+          resolve();
+        }, { once: false, capture: true });
+        document.dispatchEvent(_clSyncEvent);
+      });
+      _clSyncPromise.then(() => {
+        // Iniciar el listener de Firestore en tiempo real para traer datos de la nube
+        // (después de que los checklists ya estén en localStorage)
+        setupRealtimeCloudSync(user);
+      });
       // Cargar capa desde enlace público si hay ?share= en la URL
       const _sp = new URLSearchParams(window.location.search);
       const _shareId = _sp.get('share');
@@ -6484,14 +6803,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const dbBack  = document.getElementById('mob-draw-bar-back');
   const dbClose = document.getElementById('mob-draw-bar-close');
   const dbSave  = document.getElementById('mob-draw-bar-save');
-  if (!drawBar || !dbArea || !dbLine) return;
+  const dbPoint = document.getElementById('mob-draw-bar-point');
+  if (!drawBar || !dbArea || !dbLine || !dbPoint) return;
 
   function updateBarUI() {
     dbArea.classList.toggle('active', drawMode === 'area');
     dbLine.classList.toggle('active', drawMode === 'line');
+    dbPoint.classList.toggle('active', drawMode === 'point');
     const locked = drawActive && drawPoints.length > 0;
     dbArea.disabled = locked;
     dbLine.disabled = locked;
+    dbPoint.disabled = locked;
+    // El botón de deshacer no aplica en modo punto (se guarda de inmediato)
+    dbBack.disabled = drawMode === 'point';
   }
 
   window.openDrawBar = function() {
@@ -6533,6 +6857,13 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     if (drawActive && drawPoints.length > 0) return;
     drawMode = 'line';
+    if (!drawActive) startDraw();
+    updateBarUI();
+  });
+  dbPoint.addEventListener('click', e => {
+    e.stopPropagation();
+    if (drawActive && drawPoints.length > 0) return;
+    drawMode = 'point';
     if (!drawActive) startDraw();
     updateBarUI();
   });
@@ -6586,6 +6917,188 @@ document.addEventListener('DOMContentLoaded', function() {
     b.addEventListener('click', function() { mobSetRecintoYear(b.dataset.year); });
   });
 });
+
+
+// ═══════════════════════════════════════════════════════════════
+// DRAG & DROP UNIVERSAL EN EL PANEL DE CAPAS
+// ═══════════════════════════════════════════════════════════════
+(function () {
+  const card    = document.getElementById('layers-card-drop');
+  const overlay = document.getElementById('layers-drop-overlay');
+  const label   = document.getElementById('layers-drop-label');
+  const hint    = document.getElementById('layers-drop-hint');
+  if (!card || !overlay) return;
+
+  // Clasificar archivos soltados para dar feedback antes de procesar
+  function classifyFiles(files) {
+    const isPhoto = f => /\.(jpe?g|tiff?)$/i.test(f.name);
+    const isVec   = f => /\.(shp|dbf|shx|prj|zip|kml|kmz|xml)$/i.test(f.name);
+    const isTxt   = f => /\.(txt|csv)$/i.test(f.name);
+    const photos = files.filter(isPhoto);
+    const vecs   = files.filter(isVec);
+    const txts   = files.filter(isTxt);
+    return { photos, vecs, txts };
+  }
+
+  function describeFiles(files) {
+    const { photos, vecs, txts } = classifyFiles(files);
+    const parts = [];
+    if (photos.length) parts.push(`${photos.length} foto${photos.length > 1 ? 's' : ''}`);
+    if (vecs.length)   parts.push(`${vecs.length} capa${vecs.length > 1 ? 's' : ''} vectorial${vecs.length > 1 ? 'es' : ''}`);
+    if (txts.length)   parts.push(`${txts.length} archivo${txts.length > 1 ? 's' : ''} de recintos`);
+    return parts.length ? parts.join(' · ') : 'Suelta aquí para cargar';
+  }
+
+  let _dragCounter = 0; // counter para ignorar drag enter/leave de hijos
+
+  card.addEventListener('dragenter', e => {
+    e.preventDefault();
+    _dragCounter++;
+    if (_dragCounter === 1) {
+      const files = [...(e.dataTransfer?.items || [])].map(i => ({ name: i.getAsFile()?.name || '' }));
+      label.textContent = describeFiles(files) || 'Suelta aquí para cargar';
+      overlay.classList.add('active');
+    }
+  });
+
+  card.addEventListener('dragleave', e => {
+    _dragCounter--;
+    if (_dragCounter === 0) overlay.classList.remove('active');
+  });
+
+  card.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+
+  card.addEventListener('drop', async e => {
+    e.preventDefault();
+    _dragCounter = 0;
+    overlay.classList.remove('active');
+
+    const files = [...e.dataTransfer.files];
+    if (!files.length) return;
+
+    const { photos, vecs, txts } = classifyFiles(files);
+    const unknown = files.filter(f => !photos.includes(f) && !vecs.includes(f) && !txts.includes(f));
+
+    if (unknown.length) {
+      const names = unknown.map(f => f.name).join(', ');
+      toast(`Tipo no soportado: ${names}`, 'err');
+    }
+
+    // Procesar cada grupo con su handler existente
+    if (photos.length) {
+      await processFiles(photos);
+    }
+    if (vecs.length) {
+      await handleShpFiles(vecs);
+    }
+    for (const f of txts) {
+      await handleTxtFile(f);
+    }
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE ETIQUETAS DE CAPA
+// ═══════════════════════════════════════════════════════════════
+const layerLabels = {}; // { [layerId]: { fields: [], visible: bool } }
+
+const LABEL_ZOOM_THRESHOLD = 17; // zoom mínimo para mostrar etiquetas (línea editable)
+
+function buildLabelHtml(properties, fields, color, size) {
+  const style = `color:${color||'#fff'};font-size:${size||14}px;`;
+  const lines = fields
+    .filter(f => f && properties && properties[f] !== undefined && properties[f] !== null && String(properties[f]).trim() !== '')
+    .map(f => `<div class="layer-label-line" style="${style}">${esc(String(properties[f]))}</div>`);
+  if (!lines.length) return null;
+  return lines.join('');
+}
+
+// Elimina todos los tooltips de etiqueta de la polyLayer de una capa
+function _clearLabelTooltips(layerId) {
+  const shpLayer = shpLayers.find(l => l.id === layerId);
+  if (!shpLayer) return;
+  shpLayer.polyLayer.eachLayer(sub => {
+    if (sub.getTooltip && sub.getTooltip()) sub.unbindTooltip();
+  });
+}
+
+// Reconstruye tooltips en la polyLayer según los campos elegidos
+function rebuildLabelGroup(layer) {
+  _clearLabelTooltips(layer.id);
+  const cfg = layerLabels[layer.id];
+  if (!cfg) return;
+  const activeFields = cfg.fields.filter(Boolean);
+  if (!activeFields.length) return;
+
+  // Iterar sobre los sub-layers de polyLayer (uno por feature)
+  let idx = 0;
+  layer.polyLayer.eachLayer(sub => {
+    const feature = sub.feature;
+    if (!feature) { idx++; return; }
+    const html = buildLabelHtml(feature.properties, cfg.fields, cfg.color, cfg.size);
+    if (!html) { idx++; return; }
+    sub.bindTooltip(html, {
+      permanent: true,
+      direction: 'center',
+      className: 'layer-label-tooltip',
+      opacity: 1
+    });
+    idx++;
+  });
+
+  // Aplicar visibilidad inicial
+  syncLabelGroupVisibility(layer.id);
+}
+
+// Muestra u oculta los tooltips según zoom y toggle
+function syncLabelGroupVisibility(layerId) {
+  const cfg = layerLabels[layerId];
+  const shpLayer = shpLayers.find(l => l.id === layerId);
+  if (!shpLayer) return;
+
+  const layerVisible = shpLayer.visible !== false;
+  const shouldShow = cfg && cfg.visible && layerVisible && map.getZoom() >= LABEL_ZOOM_THRESHOLD;
+
+  shpLayer.polyLayer.eachLayer(sub => {
+    if (!sub.getTooltip || !sub.getTooltip()) return;
+    if (shouldShow) {
+      if (!sub.isTooltipOpen()) sub.openTooltip();
+    } else {
+      if (sub.isTooltipOpen()) sub.closeTooltip();
+    }
+  });
+}
+
+map.on('zoomend', () => {
+  Object.keys(layerLabels).forEach(id => syncLabelGroupVisibility(id));
+});
+
+function removeLayerLabels(layerId) {
+  _clearLabelTooltips(layerId);
+  delete layerLabels[layerId];
+}
+
+// Guardar configuración de etiquetas en cloud (patch de updateShpColorInCloud)
+async function updateShpLabelsInCloud(layerId, labels) {
+  if (!isFirebaseActive()) return;
+  const user = auth.currentUser;
+  if (!user) return;
+  const docRef = db.doc(`artifacts/${appId}/users/${user.uid}/capas_vectoriales/${layerId}`);
+  try { await docRef.update({ labels: JSON.stringify(labels) }); } catch (_) {}
+}
+
+// Restaurar etiquetas al cargar una capa (llamar desde addShpLayer o sync)
+function restoreLayerLabels(layer, labelsData) {
+  if (!labelsData) return;
+  try {
+    const cfg = typeof labelsData === 'string' ? JSON.parse(labelsData) : labelsData;
+    layerLabels[layer.id] = { fields: cfg.fields || ['','',''], visible: !!cfg.visible, color: cfg.color || '#ffffff', size: cfg.size || '14' };
+    rebuildLabelGroup(layer);
+  } catch(_) {}
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MODAL EDICIÓN DE CAPA (nombre + color)
@@ -6654,8 +7167,53 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
 
-  cancelBtn.addEventListener('click', () => { closeColorPop(); modal.classList.remove('open'); _editLayer = null; });
-  modal.addEventListener('click', e => { if (e.target === modal) { closeColorPop(); modal.classList.remove('open'); _editLayer = null; } });
+  // ─── Popover color de etiquetas ──────────────────────────────
+  const lblColorPop     = document.getElementById('lbl-color-pop');
+  const lblColorPreview = document.getElementById('lbl-color-preview');
+  const lblColorInput   = document.getElementById('lbl-color-input');
+  const lblSwatchesEl   = document.getElementById('lbl-swatches');
+  const lblMoreBtn      = document.getElementById('lbl-more');
+  const lblOkBtn        = document.getElementById('lbl-ok');
+  const LBL_PRESET_COLORS = [
+    '#ffffff','#000000','#ffcc00','#ff8c00','#d93025','#2f6fde',
+    '#1e8a4c','#9b27c8','#00bcd4','#795548','#607d8b','#ff00ff'
+  ];
+  function renderLblSwatches(active) {
+    lblSwatchesEl.innerHTML = '';
+    LBL_PRESET_COLORS.forEach(c => {
+      const sw = document.createElement('div');
+      sw.className = 'lec-swatch' + (c.toLowerCase() === (active||'').toLowerCase() ? ' selected' : '');
+      sw.style.background = c;
+      if (c === '#ffffff') sw.style.border = '1.5px solid #ccc';
+      sw.addEventListener('click', () => {
+        lblColorPreview.style.background = c;
+        lblColorInput.value = c;
+        renderLblSwatches(c);
+      });
+      lblSwatchesEl.appendChild(sw);
+    });
+  }
+  function openLblColorPop() {
+    renderLblSwatches(lblColorInput.value);
+    lblColorPop.classList.add('open');
+  }
+  function closeLblColorPop() { lblColorPop.classList.remove('open'); }
+  lblColorPreview.addEventListener('click', e => { e.stopPropagation(); openLblColorPop(); });
+  lblMoreBtn.addEventListener('click', e => { e.stopPropagation(); lblColorInput.click(); });
+  lblColorInput.addEventListener('input', () => {
+    lblColorPreview.style.background = lblColorInput.value;
+    renderLblSwatches(lblColorInput.value);
+  });
+  lblOkBtn.addEventListener('click', e => { e.stopPropagation(); closeLblColorPop(); });
+  document.addEventListener('click', e => {
+    if (!lblColorPop.classList.contains('open')) return;
+    if (lblColorPop.contains(e.target) || lblColorPreview.contains(e.target)) return;
+    closeLblColorPop();
+  });
+
+
+  modal.addEventListener('click', e => { if (e.target === modal) { closeColorPop(); closeLblColorPop(); modal.classList.remove('open'); _editLayer = null; } });
+  cancelBtn.addEventListener('click', () => { closeColorPop(); closeLblColorPop(); modal.classList.remove('open'); _editLayer = null; });
 
   saveBtn.addEventListener('click', () => {
     if (!_editLayer) return;
@@ -6680,17 +7238,75 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
 
+    // ── Guardar etiquetas ────────────────────────────────────
+    if (typeof layerLabels !== 'undefined') {
+      const newFields  = [0,1,2].map(i => document.getElementById('lbl-field-' + i)?.value || '');
+      const newVisible = document.getElementById('lbl-visible-toggle')?.checked || false;
+      const newColor   = lblColorInput?.value || '#ffffff';
+      const newSize    = document.getElementById('lbl-size')?.value || '14';
+      const hasAnyField = newFields.some(Boolean);
+
+      if (!hasAnyField) {
+        removeLayerLabels(_editLayer.id);
+      } else {
+        layerLabels[_editLayer.id] = { fields: newFields, visible: newVisible, color: newColor, size: newSize };
+        rebuildLabelGroup(_editLayer);
+      }
+      if (typeof isFirebaseActive === 'function' && isFirebaseActive()) {
+        updateShpLabelsInCloud(_editLayer.id, { fields: newFields, visible: newVisible, color: newColor, size: newSize });
+      }
+    }
+
     toast(`Capa "${_editLayer.name}" actualizada`, 'ok');
     closeColorPop();
     modal.classList.remove('open');
     _editLayer = null;
   });
 
+  // ── Helpers etiquetas en el modal ──────────────────────────
+  function getLayerFields(layer) {
+    const fields = new Set();
+    const collect = g => {
+      if (!g) return;
+      if (Array.isArray(g)) { g.forEach(collect); return; }
+      if (g.type === 'FeatureCollection') g.features?.forEach(f => { Object.keys(f.properties || {}).forEach(k => fields.add(k)); });
+      else if (g.type === 'Feature') Object.keys(layer.geojson.properties || {}).forEach(k => fields.add(k));
+    };
+    collect(layer.geojson);
+    return [...fields];
+  }
+
+  function populateLblSelects(layer) {
+    const fields = getLayerFields(layer);
+    const cfg = typeof layerLabels !== 'undefined' && layerLabels[layer.id]
+      ? layerLabels[layer.id]
+      : { fields: ['','',''], visible: false };
+    [0,1,2].forEach(i => {
+      const sel = document.getElementById('lbl-field-' + i);
+      sel.innerHTML = '<option value="">— Sin etiqueta —</option>';
+      fields.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f;
+        if (f === cfg.fields[i]) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (!fields.includes(cfg.fields[i])) sel.value = '';
+    });
+    document.getElementById('lbl-visible-toggle').checked = cfg.visible;
+    // Restaurar color y tamaño
+    const lblColor = cfg.color || '#ffffff';
+    const lblSize  = cfg.size  || '14';
+    lblColorInput.value = lblColor;
+    lblColorPreview.style.background = lblColor;
+    document.getElementById('lbl-size').value = lblSize;
+  }
+
   window.openLayerEditModal = function(layer) {
     _editLayer = layer;
     nameInput.value = layer.name;
     colorInput.value = layer.color;
     colorPreview.style.background = layer.color;
+    populateLblSelects(layer);
     modal.classList.add('open');
     setTimeout(() => { nameInput.focus(); nameInput.select(); }, 80);
   };
@@ -6717,6 +7333,50 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="lec-more" id="lec-more" type="button" title="Más colores">＋</button>
             <button class="lec-ok" id="lec-ok" type="button">Aceptar</button>
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- Etiquetas -->
+    <div class="layer-edit-field lbl-section" id="lbl-section">
+      <div class="lbl-toggle-row">
+        <div class="layer-edit-label">Etiquetas</div>
+        <div class="toggle-wrap" style="flex-shrink:0;">
+          <input type="checkbox" id="lbl-visible-toggle">
+          <label for="lbl-visible-toggle"></label>
+        </div>
+      </div>
+      <div class="lbl-selects" id="lbl-selects">
+        <select class="lbl-select" id="lbl-field-0"><option value="">— Sin etiqueta —</option></select>
+        <select class="lbl-select" id="lbl-field-1"><option value="">— Sin etiqueta —</option></select>
+        <select class="lbl-select" id="lbl-field-2"><option value="">— Sin etiqueta —</option></select>
+      </div>
+      <!-- Color y tamaño de etiqueta -->
+      <div class="lbl-style-row">
+        <div class="lbl-style-group">
+          <div class="layer-edit-label" style="margin-bottom:4px;">Color texto</div>
+          <div class="layer-edit-color-row" style="position:relative;">
+            <div class="layer-edit-color-preview" id="lbl-color-preview" style="background:#ffffff; cursor:pointer;"></div>
+            <input class="layer-edit-color-input" type="color" id="lbl-color-input" value="#ffffff">
+            <div id="lbl-color-pop">
+              <div class="lec-swatches" id="lbl-swatches"></div>
+              <div class="lec-pop-row" style="justify-content:flex-end;">
+                <button class="lec-more" id="lbl-more" type="button" title="Más colores">＋</button>
+                <button class="lec-ok" id="lbl-ok" type="button">OK</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lbl-style-group">
+          <div class="layer-edit-label" style="margin-bottom:4px;">Tamaño</div>
+          <select class="lbl-select" id="lbl-size" style="width:100%;">
+            <option value="10">10 px</option>
+            <option value="12">12 px</option>
+            <option value="14" selected>14 px</option>
+            <option value="16">16 px</option>
+            <option value="18">18 px</option>
+            <option value="20">20 px</option>
+            <option value="24">24 px</option>
+          </select>
         </div>
       </div>
     </div>
@@ -6751,12 +7411,19 @@ document.addEventListener('DOMContentLoaded', function() {
   const saveBtn  = document.getElementById('sel-tool-save');
   if (!bar || !dskBtn) return;
 
+  const deleteBtn = document.getElementById('sel-tool-delete');
+
   function refreshCount() {
     const n = selFeatures.length;
     const txt = n + (n === 1 ? ' seleccionada' : ' seleccionadas');
     countEl.textContent = txt;
     if (countElMob) countElMob.textContent = txt;
   }
+  function updateDeleteBtnVisibility() {
+    const isOwnLayer = selSource !== 'recinto' && selSource !== 'cultivo';
+    deleteBtn.style.display = isOwnLayer ? '' : 'none';
+  }
+
   function buildLayerOptions() {
     const prev = layerSel.value;
     const opts = [
@@ -6768,6 +7435,7 @@ document.addEventListener('DOMContentLoaded', function() {
     layerSel.innerHTML = opts.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
     layerSel.value = opts.some(o => o.value === prev) ? prev : 'recinto';
     selSource = layerSel.value; window._selSource = selSource;
+    updateDeleteBtnVisibility();
   }
   function clearSelection() {
     selFeatures.forEach(s => { if (s.hl) map.removeLayer(s.hl); });
@@ -6888,7 +7556,16 @@ document.addEventListener('DOMContentLoaded', function() {
       const key = mode === 'recinto'
         ? [props.PROVINCIA, props.MUNICIPIO, props.AGREGADO, props.ZONA, props.POLIGONO, props.PARCELA, props.RECINTO].join(':')
         : JSON.stringify(props);
-      if (selFeatures.some(s => s.key === key)) { toast('Ya seleccionado', 'err'); return; }
+
+      // Toggle: si ya está seleccionado, deseleccionar
+      const existingIdx = selFeatures.findIndex(s => s.key === key);
+      if (existingIdx !== -1) {
+        const removed = selFeatures.splice(existingIdx, 1)[0];
+        if (removed.hl) map.removeLayer(removed.hl);
+        window._selFeatures = selFeatures;
+        refreshCount();
+        return;
+      }
 
       const ring = coords.map(p => [p.lng, p.lat]);
       if (ring[0][0] !== ring[ring.length-1][0] || ring[0][1] !== ring[ring.length-1][1]) {
@@ -6904,17 +7581,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function pointInGeoJSON(latlng, geom) {
     const x = latlng.lng, y = latlng.lat;
-    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
-    for (const poly of polys) {
-      const ring = poly[0];
-      let inside = false;
-      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
-        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
+
+    // Polígono: ray casting
+    if (geom.type === 'Polygon' || geom.type === 'MultiPolygon') {
+      const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+      for (const poly of polys) {
+        const ring = poly[0];
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+          const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
+        if (inside) return true;
       }
-      if (inside) return true;
+      return false;
     }
+
+    // Punto: tolerancia en grados (~15m)
+    const TOL = 0.00015;
+    if (geom.type === 'Point') {
+      return Math.abs(geom.coordinates[0] - x) < TOL && Math.abs(geom.coordinates[1] - y) < TOL;
+    }
+    if (geom.type === 'MultiPoint') {
+      return geom.coordinates.some(c => Math.abs(c[0] - x) < TOL && Math.abs(c[1] - y) < TOL);
+    }
+
+    // Línea: distancia al segmento más cercano
+    const LINE_TOL = 0.00018;
+    function distToSegment(ax, ay, bx, by) {
+      const dx = bx - ax, dy = by - ay;
+      if (dx === 0 && dy === 0) return Math.hypot(x - ax, y - ay);
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+    }
+    function lineNear(coords) {
+      for (let i = 1; i < coords.length; i++) {
+        if (distToSegment(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]) < LINE_TOL) return true;
+      }
+      return false;
+    }
+    if (geom.type === 'LineString') return lineNear(geom.coordinates);
+    if (geom.type === 'MultiLineString') return geom.coordinates.some(lineNear);
+
     return false;
   }
 
@@ -6922,26 +7631,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const layer = shpLayers.find(l => l.id === layerId);
     if (!layer) { toast('Capa no encontrada', 'err'); return; }
     let hit = null;
+
+    // Buscar en polyLayer (Polygon, LineString, etc.)
     layer.polyLayer.eachLayer(sub => {
       if (hit || !sub.feature) return;
       const g = sub.feature.geometry;
-      if (g && /Polygon/.test(g.type)) {
-        if (pointInGeoJSON(latlng, g)) hit = sub;
-      } else if (sub.getBounds && sub.getBounds().contains(latlng)) {
-        hit = sub;
-      }
+      if (g && pointInGeoJSON(latlng, g)) hit = sub;
     });
+
+    // Si no hay hit, buscar en pinLayer (puntos individuales a zoom out)
+    if (!hit && layer.pinLayer) {
+      layer.pinLayer.eachLayer(sub => {
+        if (hit || !sub.feature) return;
+        const g = sub.feature.geometry;
+        if (g && pointInGeoJSON(latlng, g)) hit = sub;
+      });
+    }
+
     if (!hit) return;
     const key = layerId + ':' + (hit._leaflet_id || JSON.stringify(hit.feature.properties));
-    if (selFeatures.some(s => s.key === key)) { toast('Ya seleccionado', 'err'); return; }
-    const hl = L.geoJSON(hit.feature, { style: HL_STYLE, interactive: false }).addTo(map);
+
+    // Toggle: si ya está seleccionado, deseleccionar
+    const existingIdx = selFeatures.findIndex(s => s.key === key);
+    if (existingIdx !== -1) {
+      const removed = selFeatures.splice(existingIdx, 1)[0];
+      if (removed.hl) map.removeLayer(removed.hl);
+      window._selFeatures = selFeatures;
+      refreshCount();
+      return;
+    }
+
+    const hl = L.geoJSON(hit.feature, { style: HL_STYLE, pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 10, ...HL_STYLE }), interactive: false }).addTo(map);
     selFeatures.push({ feature: hit.feature, hl, key }); window._selFeatures = selFeatures;
     refreshCount();
   }
 
   dskBtn.addEventListener('click', () => { selActive ? closeSelBar() : openSelBar(); });
   if (mobBtn) mobBtn.addEventListener('click', () => { selActive ? closeSelBar() : openSelBar(); });
-  layerSel.addEventListener('change', () => { selSource = layerSel.value; window._selSource = selSource; clearSelection(); });
+  layerSel.addEventListener('change', () => { selSource = layerSel.value; window._selSource = selSource; clearSelection(); updateDeleteBtnVisibility(); });
   backBtn.addEventListener('click', () => {
     const last = selFeatures.pop();
     if (last && last.hl) map.removeLayer(last.hl);
@@ -6954,6 +7681,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const srcLabel = layerSel.options[layerSel.selectedIndex]?.text || 'Selección';
     const name = `Selección ${srcLabel} (${selFeatures.length})`;
     showSaveLayerModal(fc, name, () => closeSelBar());
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    if (selFeatures.length === 0) { toast('No hay geometrías seleccionadas', 'err'); return; }
+    const layer = shpLayers.find(l => l.id === selSource);
+    if (!layer) { toast('Capa no encontrada', 'err'); return; }
+
+    // Eliminar cada feature seleccionada del GeoJSON de la capa
+    let removed = 0;
+    selFeatures.forEach(sel => {
+      const fc = layer.geojson;
+      if (!fc || !fc.features) return;
+      const idx = fc.features.indexOf(sel.feature);
+      if (idx !== -1) { fc.features.splice(idx, 1); removed++; }
+    });
+    if (removed === 0) { toast('No se pudo eliminar la geometría', 'err'); return; }
+
+    // Limpiar highlights de la selección actual
+    selFeatures.forEach(s => { if (s.hl) map.removeLayer(s.hl); });
+    selFeatures = []; window._selFeatures = selFeatures;
+
+    // Preservar color y etiquetas antes de reconstruir la capa
+    const savedColor = layer.color;
+    const savedLabels = typeof layerLabels !== 'undefined' && layerLabels[layer.id]
+      ? { fields: [...layerLabels[layer.id].fields], visible: layerLabels[layer.id].visible, color: layerLabels[layer.id].color, size: layerLabels[layer.id].size }
+      : null;
+    if (typeof removeLayerLabels === 'function') removeLayerLabels(layer.id);
+
+    // Eliminar la capa del mapa y reconstruirla con el GeoJSON actualizado
+    map.removeLayer(layer.polyLayer);
+    if (layer.pinLayer) map.removeLayer(layer.pinLayer);
+    map.off('zoomend', layer.leafletLayer._onZoom);
+    shpLayers.splice(shpLayers.findIndex(l => l.id === layer.id), 1);
+
+    const updatedGeojson = { ...layer.geojson };
+    addShpLayer(updatedGeojson, layer.name, layer.id, true, false, savedColor);
+
+    // Restaurar etiquetas
+    if (savedLabels) {
+      const rebuiltLayer = shpLayers.find(l => l.id === layer.id);
+      if (rebuiltLayer && typeof restoreLayerLabels === 'function') restoreLayerLabels(rebuiltLayer, savedLabels);
+    }
+
+    // Persistir en cloud
+    if (typeof isFirebaseActive === 'function' && isFirebaseActive() && typeof saveShpToCloud === 'function') {
+      saveShpToCloud(shpLayers.find(l => l.id === layer.id));
+    }
+
+    refreshCount();
+    toast(`${removed} geometría${removed > 1 ? 's' : ''} eliminada${removed > 1 ? 's' : ''} de "${layer.name}"`, 'ok');
   });
 
   // Sincronización con otras herramientas
@@ -7037,6 +7814,26 @@ document.addEventListener('DOMContentLoaded', function() {
           localStorage.setItem(doc.id, JSON.stringify(remote));
         }
       });
+      // Reaplicar estilos de visitados en todas las capas ya cargadas,
+      // ya que pueden haberse renderizado antes de que los checklists llegaran de la nube
+      if (typeof shpLayers !== 'undefined' && typeof updateFeatureVisitedStyle !== 'undefined') {
+        shpLayers.forEach(layer => {
+          const _allF = [];
+          const _colF = g => {
+            if (!g) return;
+            if (Array.isArray(g)) { g.forEach(_colF); return; }
+            if (g.type === 'FeatureCollection') g.features?.forEach(f => _allF.push(f));
+            else if (g.type === 'Feature') _allF.push(g);
+          };
+          _colF(layer.geojson);
+          _allF.forEach((f, fIdx) => {
+            const saved = getChecklistData(layer.id, fIdx);
+            if (saved?.visitado) {
+              updateFeatureVisitedStyle(layer.id, fIdx, true);
+            }
+          });
+        });
+      }
     } catch(err) { console.warn('Checklist sync error:', err); }
   });
 
@@ -7146,8 +7943,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Eliminar del panel de capas
     document.querySelector(`.list-item[data-id="${layerId}"]`)?.remove();
 
-    // Recrear la capa con los datos combinados, manteniendo el mismo id y nombre
-    addShpLayer(mergedGeojson, layer.name, layer.id, true, false);
+    // Preservar configuración de etiquetas y color antes de recrear la capa
+    const _savedColor = layer.color;
+    const _savedLabels = typeof layerLabels !== 'undefined' && layerLabels[layer.id]
+      ? { fields: [...layerLabels[layer.id].fields], visible: layerLabels[layer.id].visible }
+      : null;
+    if (typeof removeLayerLabels === 'function') removeLayerLabels(layer.id);
+    // Recrear la capa con los datos combinados, manteniendo el mismo id, nombre y color
+    addShpLayer(mergedGeojson, layer.name, layer.id, true, false, _savedColor);
+
+    // Restaurar etiquetas en la capa recién recreada
+    if (_savedLabels) {
+      const _mergedLayer = shpLayers.find(l => l.id === layer.id);
+      if (_mergedLayer && typeof restoreLayerLabels === 'function') {
+        restoreLayerLabels(_mergedLayer, _savedLabels);
+      }
+    }
     toast(`${newFeatures.length} geometría${newFeatures.length > 1 ? 's' : ''} añadida${newFeatures.length > 1 ? 's' : ''} a "${layer.name}"`, 'ok');
   }
 
