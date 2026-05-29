@@ -1,6 +1,6 @@
 {
-  "name": "GEOmaps",
-  "short_name": "GEOmaps",
+  "name": "GEOmapas",
+  "short_name": "GEOmapas",
   "description": "Visor SIGPAC con herramientas de campo",
   "start_url": "./index.html",
   "display": "standalone",
