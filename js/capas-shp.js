@@ -87,11 +87,41 @@ function setCustomFields(layerId, fields) {
   try { localStorage.setItem(`cf_${layerId}`, JSON.stringify(arr)); } catch(_) {}
 }
 
-// Lee el estado del checklist desde localStorage
-function getChecklistData(layerId, fIdx) {
-  try { return JSON.parse(localStorage.getItem(`cl_${layerId}_${fIdx}`) || 'null'); }
+// Lee el estado del checklist desde localStorage (acepta fid string o feature)
+function getChecklistData(layerId, fidOrFeature) {
+  const fid = (fidOrFeature && typeof fidOrFeature === 'object')
+    ? (fidOrFeature.properties && fidOrFeature.properties._fid) : fidOrFeature;
+  if (fid == null) return null;
+  try { return JSON.parse(localStorage.getItem(`cl_${layerId}_${fid}`) || 'null'); }
   catch(e) { return null; }
 }
+
+// Asigna un _fid estable a cada feature (persistente en el geojson y sincronizable).
+// Migra las claves antiguas cl_${layerId}_${idx} → cl_${layerId}_${fid} cuando aún no existan.
+function ensureFeatureIds(layerId, features) {
+  features.forEach((f, idx) => {
+    f.properties = f.properties || {};
+    if (!f.properties._fid) {
+      // Reutilizar un identificador estable de la propia feature si existe
+      const p = f.properties;
+      const natural = p.OBJECTID || p.objectid || p.FID || p.fid || p.ID || p.id;
+      let fid = natural != null ? String(natural) : null;
+      if (!fid) {
+        try { fid = (crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10))); }
+        catch(_) { fid = Date.now().toString(36) + '_' + idx + '_' + Math.random().\(\).toString(36).slice(2, 8); }
+      }
+      f.properties._fid = fid;
+      // Migrar checklist antiguo (por índice) al nuevo key por fid, si existe
+      const oldKey = `cl_${layerId}_${idx}`;
+      const newKey = `cl_${layerId}_${fid}`;
+      const oldVal = localStorage.getItem(oldKey);
+      if (oldVal && !localStorage.getItem(newKey)) {
+        try { localStorage.setItem(newKey, oldVal); } catch(_) {}
+      }
+    }
+  });
+}
+
 
 // Formatea una fecha de visita (timestamp numérico o string ya formateado) a "YYYY-MM-DD HH:MM"
 function formatVisitDate(v) {
@@ -117,9 +147,9 @@ function enrichGeojsonWithChecklist(layerId, geojson) {
   };
   collect(clone);
   const customLabels = getCustomFields(layerId);
-  feats.forEach((f, idx) => {
+  feats.forEach((f) => {
     f.properties = f.properties || {};
-    const saved = getChecklistData(layerId, idx);
+    const saved = getChecklistData(layerId, f.properties._fid);
     f.properties._visitado  = saved?.visitado ? 1 : 0;
     f.properties._tecnico   = saved?.tecnico || '';
     f.properties._fecha     = formatVisitDate(saved?.visitDate);
@@ -135,13 +165,15 @@ function enrichGeojsonWithChecklist(layerId, geojson) {
 
 // Al importar una capa con campos _visitado / _tecnico / _fecha / _cN / _comentari, vuelca al localStorage
 function importChecklistFromFeatures(layerId, features) {
-  features.forEach((f, idx) => {
+  features.forEach((f) => {
     const p = f.properties || {};
+    const fid = p._fid;
+    if (!fid) return;
     const hasFlag = ('_visitado' in p) || ('_VISITADO' in p) || ('_comentari' in p) || ('_COMENTARI' in p)
       || ('_tecnico' in p) || ('_TECNICO' in p) || ('_fecha' in p) || ('_FECHA' in p)
       || ['1','2','3','4','5'].some(n => (`_c${n}` in p) || (`_C${n}` in p));
     if (!hasFlag) return;
-    const key = `cl_${layerId}_${idx}`;
+    const key = `cl_${layerId}_${fid}`;
     if (localStorage.getItem(key)) return; // no pisar lo existente
     const visitadoRaw = p._visitado ?? p._VISITADO ?? 0;
     const visitado = (visitadoRaw === 1 || visitadoRaw === '1' || visitadoRaw === true || visitadoRaw === 'true');
@@ -162,49 +194,44 @@ function importChecklistFromFeatures(layerId, features) {
   });
 }
 
-// Actualiza el color de un feature concreto al marcar/desmarcar como visitado
-function updateFeatureVisitedStyle(layerId, featureIdx, visitado) {
+// Actualiza el color de un feature concreto al marcar/desmarcar como visitado.
+// Recibe el fid (string estable) del feature, no un índice numérico.
+function updateFeatureVisitedStyle(layerId, fid, visitado) {
   const layer = shpLayers.find(l => l.id === layerId);
-  if (!layer) return;
+  if (!layer || fid == null) return;
   const newColor = visitado ? VISITED_COLOR : layer.color;
 
-  // Actualizar polígono/línea/punto en polyLayer
-  let fCount = 0;
+  // Actualizar polígono/línea/punto en polyLayer buscando por fid de la feature asociada al sub-layer
   layer.polyLayer.eachLayer(sub => {
-    if (fCount === featureIdx) {
-      if (typeof sub.setStyle === 'function') {
-        sub.setStyle({ color: newColor, fillColor: newColor, weight: 2, fillOpacity: 0.25 });
-      } else if (sub.setIcon) {
-        // Es un marker de punto — actualizar icono directamente
-        sub.setIcon(buildPinIcon(newColor));
-      }
+    const subFid = sub.feature?.properties?._fid;
+    if (subFid !== fid) return;
+    if (typeof sub.setStyle === 'function') {
+      sub.setStyle({ color: newColor, fillColor: newColor, weight: 2, fillOpacity: 0.25 });
+    } else if (sub.setIcon) {
+      sub.setIcon(buildPinIcon(newColor));
     }
-    fCount++;
   });
 
-  // Actualizar pin en pinLayer
-  const allFeatures = [];
-  const collect = g => {
-    if (!g) return;
-    if (Array.isArray(g)) { g.forEach(collect); return; }
-    if (g.type === 'FeatureCollection') g.features?.forEach(f => allFeatures.push(f));
-    else if (g.type === 'Feature') allFeatures.push(g);
-  };
-  collect(layer.geojson);
-
-  const pins = [];
-  layer.pinLayer.eachLayer(m => pins.push(m));
-  if (pins[featureIdx]) {
-    const f = allFeatures[featureIdx];
-    const c = featureCentroid(f);
-    if (c) {
-      layer.pinLayer.removeLayer(pins[featureIdx]);
-      L.marker(c, { icon: buildPinIcon(newColor) })
-        .bindPopup(buildPopupHtml(f.properties, layerId, featureIdx))
-        .addTo(layer.pinLayer);
-    }
-  }
+  // Actualizar pin en pinLayer (buscando por fid guardado en options)
+  layer.pinLayer.eachLayer(m => {
+    if (m.options?._fid !== fid) return;
+    const latlng = m.getLatLng();
+    layer.pinLayer.removeLayer(m);
+    const allFeatures = [];
+    const collect = g => {
+      if (!g) return;
+      if (Array.isArray(g)) { g.forEach(collect); return; }
+      if (g.type === 'FeatureCollection') g.features?.forEach(f => allFeatures.push(f));
+      else if (g.type === 'Feature') allFeatures.push(g);
+    };
+    collect(layer.geojson);
+    const f = allFeatures.find(f => f.properties?._fid === fid);
+    L.marker(latlng, { icon: buildPinIcon(newColor), _fid: fid })
+      .bindPopup(() => buildPopupHtml(f?.properties, layerId, fid))
+      .addTo(layer.pinLayer);
+  });
 }
+
 
 function buildPinIcon(color) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="30" viewBox="0 0 22 30">
@@ -236,19 +263,22 @@ function featureCentroid(feature) {
   return [sumLat / pts.length, sumLng / pts.length];
 }
 
-function buildPopupHtml(properties, layerId, featureIdx) {
-  const hasChecklist = layerId != null;
+function buildPopupHtml(properties, layerId, fid) {
+  const hasChecklist = layerId != null && fid != null;
 
   // ── Panel de atributos ──
   let attrsHtml = '<div style="font-family:DM Sans,sans-serif;font-size:10px;max-height:140px;overflow:auto;padding:2px 0;">';
   if (!properties) attrsHtml += '<i style="color:#aaa">Sin atributos</i>';
-  else for (const k in properties) attrsHtml += `<b>${esc(k)}:</b> ${esc(String(properties[k] ?? ''))}<br>`;
+  else for (const k in properties) {
+    if (k === '_fid') continue; // no mostrar el id interno
+    attrsHtml += `<b>${esc(k)}:</b> ${esc(String(properties[k] ?? ''))}<br>`;
+  }
   attrsHtml += '</div>';
 
   if (!hasChecklist) return attrsHtml;
 
   // ── Panel checklist ──
-  const clKey = `cl_${layerId}_${featureIdx}`;
+  const clKey = `cl_${layerId}_${fid}`;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
   const visitado = saved?.visitado || false;
   const comentario = saved?.comentario || '';
@@ -291,6 +321,7 @@ function buildPopupHtml(properties, layerId, featureIdx) {
   </div>`;
 }
 
+
 // ── Agregar Capa Vectorial (Modificada con integración de base de datos) ──
 function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, shouldZoom = true, forceColor = null) {
   const id    = cloudId || Math.random().toString(36).slice(2, 11);
@@ -322,39 +353,38 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
     else if (g.type === 'Feature') allFeatures.push(g);
   };
   collect(geojson);
+  // Asigna un id estable (_fid) a cada feature ANTES de importar/leer checklists
+  ensureFeatureIds(id, allFeatures);
   // Importa checklist embebido (si el SHP/GeoJSON viene de export/share)
   importChecklistFromFeatures(id, allFeatures);
 
 
   const polyLayer = L.geoJSON(geojson, {
     style: f => {
-      const fIdx = allFeatures.indexOf(f);
-      const clKey = `cl_${id}_${fIdx}`;
-      const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
+      const saved = getChecklistData(id, f?.properties?._fid);
       const c = saved?.visitado ? VISITED_COLOR : color;
       return { color: c, weight: 2, fillOpacity: 0.25, fillColor: c };
     },
     pointToLayer: (f, latlng) => {
-      const fIdx = allFeatures.indexOf(f);
-      const clKey = `cl_${id}_${fIdx}`;
-      const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
+      const saved = getChecklistData(id, f?.properties?._fid);
       const c = saved?.visitado ? VISITED_COLOR : color;
-      return L.marker(latlng, { icon: buildPinIcon(c) });
+      return L.marker(latlng, { icon: buildPinIcon(c), _fid: f?.properties?._fid });
     },
-    onEachFeature: (f, l, fIdx = allFeatures.indexOf(f)) => { l.bindPopup(() => buildPopupHtml(f.properties, id, fIdx)); }
+    onEachFeature: (f, l) => { l.bindPopup(() => buildPopupHtml(f.properties, id, f?.properties?._fid)); }
   });
 
   const pinLayer = L.layerGroup();
-  allFeatures.forEach((f, fIdx) => {
+  allFeatures.forEach((f) => {
     const c = featureCentroid(f);
     if (!c) return;
-    const clKey = `cl_${id}_${fIdx}`;
-    const saved = (() => { try { return JSON.parse(localStorage.getItem(clKey) || 'null'); } catch(e) { return null; } })();
+    const fid = f.properties?._fid;
+    const saved = getChecklistData(id, fid);
     const pinColor = saved?.visitado ? VISITED_COLOR : color;
-    L.marker(c, { icon: buildPinIcon(pinColor) })
-      .bindPopup(buildPopupHtml(f.properties, id, fIdx))
+    L.marker(c, { icon: buildPinIcon(pinColor), _fid: fid })
+      .bindPopup(() => buildPopupHtml(f.properties, id, fid))
       .addTo(pinLayer);
   });
+
 
   const zoom = map.getZoom();
   const showPins = zoom < SHP_ZOOM_THRESHOLD;
@@ -372,6 +402,7 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
   }
   map.on('zoomend', onZoom);
 
+
   const leafletLayer = {
     _onZoom: onZoom,
     addTo(m) {
@@ -383,31 +414,31 @@ function addShpLayer(geojson, name, cloudId = null, shouldSaveToCloud = false, s
     setStyle(s) {
       const newColor = s.color || color;
       // Actualizar polyLayer: polígonos/líneas con setStyle, puntos recreando el marker
-      let i = 0;
       polyLayer.eachLayer(sub => {
-        const saved = getChecklistData(id, i);
+        const fid = sub.feature?.properties?._fid;
+        const saved = getChecklistData(id, fid);
         const c = saved?.visitado ? VISITED_COLOR : newColor;
         if (typeof sub.setStyle === 'function') {
           sub.setStyle({ color: c, fillColor: c, weight: 2, fillOpacity: 0.25 });
         } else if (sub.setIcon) {
-          // Es un marker (punto) — recrear icono con nuevo color
           sub.setIcon(buildPinIcon(c));
         }
-        i++;
       });
       // Actualizar pinLayer (zoom alejado)
       pinLayer.clearLayers();
-      allFeatures.forEach((f, fIdx) => {
+      allFeatures.forEach((f) => {
         const c = featureCentroid(f);
         if (!c) return;
-        const saved = getChecklistData(id, fIdx);
+        const fid = f.properties?._fid;
+        const saved = getChecklistData(id, fid);
         const pc = saved?.visitado ? VISITED_COLOR : newColor;
-        L.marker(c, { icon: buildPinIcon(pc) })
-          .bindPopup(() => buildPopupHtml(f.properties, id, fIdx))
+        L.marker(c, { icon: buildPinIcon(pc), _fid: fid })
+          .bindPopup(() => buildPopupHtml(f.properties, id, fid))
           .addTo(pinLayer);
       });
     }
   };
+
 
   const obj = { id, name, geojson, leafletLayer, polyLayer, pinLayer, color, visible: true, featureCount };
   shpLayers.push(obj);
