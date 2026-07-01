@@ -459,8 +459,17 @@ function openSearchPanel(mode) {
   container.innerHTML = fields.map(f => `
     <div class="sf-row">
       <div class="sf-label">${f.label}${f.required ? ' *' : ''}</div>
-      <input class="sf-input" id="${f.id}" type="text" placeholder="${f.required ? 'Obligatorio' : 'Opcional'}">
+      <input class="sf-input" id="${f.id}" type="text" inputmode="numeric" placeholder="${f.required ? 'Obligatorio' : 'Opcional'}">
     </div>`).join('');
+  // Enter en cualquier campo ejecuta la búsqueda (igual que el botón Buscar)
+  container.querySelectorAll('.sf-input').forEach(inp => {
+    inp.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        document.getElementById('search-btn-exec')?.click();
+      }
+    });
+  });
   document.getElementById('search-panel').classList.add('open');
 }
 
