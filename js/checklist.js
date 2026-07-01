@@ -19,9 +19,14 @@
     // Save button (checklist)
     const btn = e.target.closest('.cl-save-btn');
     if (btn) {
-      const key = btn.id.replace('cl-btn-', '');
-      const keyParts = key.replace(/^cl_/, '').match(/^(.+)_(\d+)$/);
-      const layerIdForKey = keyParts ? keyParts[1] : null;
+      const key = btn.id.replace('cl-btn-', ''); // formato: cl_${layerId}_${fid}
+      // layerId es alfanumérico sin '_' (Math.random().toString(36).slice(2,11)),
+      // aunque también admitimos cloudIds heredados. Partimos por los DOS primeros '_':
+      //   cl _ layerId _ fid...
+      let layerIdForKey = null;
+      let fidForKey = null;
+      const m = key.match(/^cl_([^_]+)_(.+)$/);
+      if (m) { layerIdForKey = m[1]; fidForKey = m[2]; }
 
       const visitado = document.getElementById('cl-cb-' + key)?.checked || false;
       const comentario = document.getElementById('cl-ta-' + key)?.value || '';
@@ -49,16 +54,15 @@
 
       const data = { visitado, comentario, ts: Date.now(), tecnico, visitDate, custom };
       localStorage.setItem(key, JSON.stringify(data));
-      // Actualizar color del feature en el mapa inmediatamente
-      // key tiene formato: cl_${layerId}_${featureIdx}
-      if (keyParts) {
-        updateFeatureVisitedStyle(keyParts[1], parseInt(keyParts[2]), visitado);
+      // Actualizar color del feature en el mapa inmediatamente (por fid estable)
+      if (layerIdForKey && fidForKey) {
+        updateFeatureVisitedStyle(layerIdForKey, fidForKey, visitado);
       }
       // Si la capa es colaborativa, sincronizar el checklist en Firestore para todos los usuarios
-      if (keyParts && typeof shpLayers !== 'undefined') {
-        const collabLayer = shpLayers.find(l => l.id === keyParts[1] && (l._isCollab || l._hasCollaborators));
+      if (layerIdForKey && fidForKey && typeof shpLayers !== 'undefined') {
+        const collabLayer = shpLayers.find(l => l.id === layerIdForKey && (l._isCollab || l._hasCollaborators));
         if (collabLayer) {
-          saveCollabChecklist(keyParts[1], keyParts[2], data);
+          saveCollabChecklist(layerIdForKey, fidForKey, data);
         }
       }
       // Si Firebase activo, guardar también en Firestore
@@ -79,6 +83,7 @@
       return;
     }
   });
+
 
   // Cargar checklists desde Firestore al iniciar sesión (complementa localStorage)
   document.addEventListener('cl-sync-firestore', async (e) => {
@@ -106,12 +111,15 @@
             else if (g.type === 'Feature') _allF.push(g);
           };
           _colF(layer.geojson);
-          _allF.forEach((f, fIdx) => {
-            const saved = getChecklistData(layer.id, fIdx);
+          _allF.forEach((f) => {
+            const fid = f?.properties?._fid;
+            if (!fid) return;
+            const saved = getChecklistData(layer.id, fid);
             if (saved?.visitado) {
-              updateFeatureVisitedStyle(layer.id, fIdx, true);
+              updateFeatureVisitedStyle(layer.id, fid, true);
             }
           });
+
         });
       }
     } catch(err) { console.warn('Checklist sync error:', err); }
@@ -217,29 +225,4 @@
     // Eliminar la capa actual del mapa y del array
     map.removeLayer(layer.polyLayer);
     map.removeLayer(layer.pinLayer);
-    map.off('zoomend', layer.leafletLayer._onZoom);
-    const idx = shpLayers.findIndex(l => l.id === layerId);
-    if (idx !== -1) shpLayers.splice(idx, 1);
-    // Eliminar del panel de capas
-    document.querySelector(`.list-item[data-id="${layerId}"]`)?.remove();
-
-    // Preservar configuración de etiquetas y color antes de recrear la capa
-    const _savedColor = layer.color;
-    const _savedLabels = typeof layerLabels !== 'undefined' && layerLabels[layer.id]
-      ? { fields: [...layerLabels[layer.id].fields], visible: layerLabels[layer.id].visible }
-      : null;
-    if (typeof removeLayerLabels === 'function') removeLayerLabels(layer.id);
-    // Recrear la capa con los datos combinados, manteniendo el mismo id, nombre y color
-    addShpLayer(mergedGeojson, layer.name, layer.id, true, false, _savedColor);
-
-    // Restaurar etiquetas en la capa recién recreada
-    if (_savedLabels) {
-      const _mergedLayer = shpLayers.find(l => l.id === layer.id);
-      if (_mergedLayer && typeof restoreLayerLabels === 'function') {
-        restoreLayerLabels(_mergedLayer, _savedLabels);
-      }
-    }
-    toast(`${newFeatures.length} geometría${newFeatures.length > 1 ? 's' : ''} añadida${newFeatures.length > 1 ? 's' : ''} a "${layer.name}"`, 'ok');
-  }
-
-})();
+    map": "map.off('zoomend', layer.leafletLayer._onZoom);\n    const idx = shpLayers.findIndex(l => l.id === layerId);\n    if (idx !== -1) shpLayers.splice(idx, 1);\n    // Eliminar del panel de capas\n    document.querySelector(`.list-item[data-id=\"${layerId}\"]`)?.remove();\n\n    // Preservar configuración de etiquetas y color antes de recrear la capa\n    const _savedColor = layer.color;\n    const _savedLabels = typeof layerLabels !== 'undefined' && layerLabels[layer.id]\n      ? { fields: [...layerLabels[layer.id].fields], visible: layerLabels[layer.id].visible }\n      : null;\n    if (typeof removeLayerLabels === 'function') removeLayerLabels(layer.id);\n    // Recrear la capa con los datos combinados, manteniendo el mismo id, nombre y color\n    addShpLayer(mergedGeojson, layer.name, layer.id, true, false, _savedColor);\n\n    // Restaurar etiquetas en la capa recién recreada\n    if (_savedLabels) {\n      const _mergedLayer = shpLayers.find(l => l.id === layer.id);\n      if (_mergedLayer && typeof restoreLayerLabels === 'function') {\n        restoreLayerLabels(_mergedLayer, _savedLabels);\n      }\n    }\n    toast(`${newFeatures.length} geometría${newFeatures.length > 1 ? 's' : ''} añadida${newFeatures.length > 1 ? 's' : ''} a \"${layer.name}\"`, 'ok');\n  }\n\n})();"
