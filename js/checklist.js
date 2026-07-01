@@ -7,7 +7,7 @@
     // Tab switching
     const tab = e.target.closest('.popup-tab');
     if (tab) {
-      const wrap = tab.closest('div');
+      const wrap = tab.closest('.popup-tabs') || tab.parentElement;
       wrap.querySelectorAll('.popup-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       const panel = tab.dataset.tab;
