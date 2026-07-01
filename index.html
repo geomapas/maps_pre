@@ -1057,6 +1057,93 @@
 .ml-popup-geomaps #ml-popup-inner {
   padding: 10px 12px 12px;
 }
+
+/* Tabs y formulario Checklist en popups Leaflet/MapLibre */
+.popup-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0,0,0,.12);
+}
+.popup-tab {
+  position: relative;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  color: #667085;
+  font: 700 11px/1.2 'DM Sans', sans-serif;
+  cursor: pointer;
+  user-select: none;
+}
+.popup-tab.active {
+  color: #2f6fde;
+  background: #eef4ff;
+  border-color: rgba(47,111,222,.24);
+}
+.popup-tab-panel {
+  display: none;
+}
+.popup-tab-panel.active {
+  display: block;
+}
+.cl-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: #22c55e;
+  vertical-align: middle;
+}
+.cl-row,
+.cl-check-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+.cl-label,
+.cl-field-label {
+  color: #344054;
+  font: 700 11px/1.2 'DM Sans', sans-serif;
+}
+.cl-field-row {
+  margin-bottom: 7px;
+}
+.cl-textarea,
+.cl-input,
+.cl-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,0,0,.16);
+  border-radius: 6px;
+  padding: 6px 7px;
+  color: #1f2937;
+  background: #fff;
+  font: 11px/1.35 'DM Sans', sans-serif;
+}
+.cl-textarea {
+  min-height: 58px;
+  resize: vertical;
+}
+.cl-save-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #2f6fde;
+  color: #fff;
+  font: 800 11px/1 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+.cl-saved-msg {
+  display: none;
+  margin-top: 6px;
+  color: #16a34a;
+  font: 700 11px/1.2 'DM Sans', sans-serif;
+  text-align: center;
+}
 </style>
 
 </body>
