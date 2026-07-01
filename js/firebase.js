@@ -296,18 +296,28 @@ function setupCollabLayersListener(user) {
         // Escuchar el doc de la capa del propietario en tiempo real
         const unsub = db.doc(`artifacts/${appId}/users/${ownerUid}/capas_vectoriales/${layerId}`)
           .onSnapshot(docSnap => {
-            if (!docSnap.exists) return;
+            if (!docSnap.exists) {
+              // El propietario eliminó la capa → quitarla del mapa del colaborador
+              const idx = shpLayers.findIndex(l => l.id === layerId);
+              if (idx >= 0) {
+                const l = shpLayers[idx];
+                map.removeLayer(l.polyLayer);
+                map.removeLayer(l.pinLayer);
+                shpLayers.splice(idx, 1);
+                document.querySelector(`.list-item[data-id="${layerId}"]`)?.remove();
+                document.querySelector(`.shp-children[data-layer-id="${layerId}"]`)?.remove();
+              }
+              return;
+            }
             const data = docSnap.data();
             // Sincronizar campos personalizados del propietario
             if (data.customFields) {
               try { setCustomFields(layerId, JSON.parse(data.customFields)); } catch(_) {}
             }
-            // Sincronizar checklist_data en tiempo real
-            if (data.checklist_data) {
-              syncCollabChecklistToLocal(layerId, data.checklist_data);
-            }
-            // Añadir la capa si no existe aún
-            if (!shpLayers.find(l => l.id === layerId)) {
+            const existing = shpLayers.find(l => l.id === layerId);
+
+            if (!existing) {
+              // Primera vez: añadir la capa
               try {
                 const geojson = JSON.parse(data.geojson);
                 addShpLayer(geojson, data.name, layerId, false, false, data.color || null);
@@ -315,10 +325,49 @@ function setupCollabLayersListener(user) {
                 if (layer) {
                   layer._isCollab = true;
                   layer._ownerUid = ownerUid;
+                  layer._remoteGeojsonStr = data.geojson;
                   setCollabActive(layerId);
-                  // Añadir badge collab en la lista
                 }
               } catch(e) { console.error('Error capa collab:', e); }
+            } else {
+              // Capa ya cargada: si el geojson remoto cambió (features añadidas/eliminadas
+              // por el propietario), reconstruimos la capa preservando id, nombre y color.
+              const remoteStr = data.geojson;
+              if (remoteStr && remoteStr !== existing._remoteGeojsonStr) {
+                try {
+                  const newGeojson = JSON.parse(remoteStr);
+                  const savedColor = existing.color;
+                  const savedName  = data.name || existing.name;
+                  const savedLabels = typeof layerLabels !== 'undefined' && layerLabels[layerId]
+                    ? { fields:[...layerLabels[layerId].fields], visible:layerLabels[layerId].visible,
+                        color:layerLabels[layerId].color, size:layerLabels[layerId].size }
+                    : null;
+                  if (typeof removeLayerLabels === 'function') removeLayerLabels(layerId);
+                  map.removeLayer(existing.polyLayer);
+                  map.removeLayer(existing.pinLayer);
+                  if (existing.leafletLayer?._onZoom) map.off('zoomend', existing.leafletLayer._onZoom);
+                  const idx = shpLayers.findIndex(l => l.id === layerId);
+                  if (idx >= 0) shpLayers.splice(idx, 1);
+                  document.querySelector(`.list-item[data-id="${layerId}"]`)?.remove();
+                  document.querySelector(`.shp-children[data-layer-id="${layerId}"]`)?.remove();
+                  addShpLayer(newGeojson, savedName, layerId, false, false, savedColor);
+                  const rebuilt = shpLayers.find(l => l.id === layerId);
+                  if (rebuilt) {
+                    rebuilt._isCollab = true;
+                    rebuilt._ownerUid = ownerUid;
+                    rebuilt._remoteGeojsonStr = remoteStr;
+                    setCollabActive(layerId);
+                    if (savedLabels && typeof restoreLayerLabels === 'function') {
+                      restoreLayerLabels(rebuilt, savedLabels);
+                    }
+                  }
+                } catch(e) { console.error('Error reconstruyendo capa collab:', e); }
+              }
+            }
+
+            // Sincronizar checklist_data DESPUÉS de asegurarnos de que la capa está lista
+            if (data.checklist_data) {
+              syncCollabChecklistToLocal(layerId, data.checklist_data);
             }
           });
         collabUnsubscribes.push(unsub);
@@ -332,23 +381,28 @@ function setupCollabLayersListener(user) {
           map.removeLayer(l.pinLayer);
           shpLayers.splice(idx, 1);
           document.querySelector(`.list-item[data-id="${layerId}"]`)?.remove();
+          document.querySelector(`.shp-children[data-layer-id="${layerId}"]`)?.remove();
         }
       }
     });
   });
 }
 
-// Vuelca el checklist_data de Firestore al localStorage local
+
+// Vuelca el checklist_data de Firestore al localStorage local (indexado por _fid)
 function syncCollabChecklistToLocal(layerId, checklistData) {
-  Object.entries(checklistData).forEach(([fIdx, data]) => {
-    const key = `cl_${layerId}_${fIdx}`;
+  Object.entries(checklistData || {}).forEach(([fid, data]) => {
+    const key = `cl_${layerId}_${fid}`;
     try { localStorage.setItem(key, JSON.stringify(data)); } catch(_) {}
   });
-  // Refrescar colores en el mapa
+  // Refrescar colores en el mapa por cada fid recibido
   const layer = shpLayers.find(l => l.id === layerId);
-  if (layer && layer.leafletLayer && typeof layer.leafletLayer.setStyle === 'function') {
-    layer.leafletLayer.setStyle({ color: layer.color });
-  }
+  if (!layer) return;
+  Object.entries(checklistData || {}).forEach(([fid, data]) => {
+    if (typeof updateFeatureVisitedStyle === 'function') {
+      updateFeatureVisitedStyle(layerId, fid, !!data?.visitado);
+    }
+  });
 }
 
 // Marca el botón compartir de una capa en verde cuando tiene modo colaborativo
@@ -359,18 +413,21 @@ function setCollabActive(layerId) {
   ).forEach(btn => btn.classList.add('collab-active'));
 }
 
-// Guardar checklist en Firestore cuando la capa es colaborativa
-async function saveCollabChecklist(layerId, fIdx, data) {
+// Guardar checklist en Firestore cuando la capa es colaborativa (fid seguro para field paths)
+async function saveCollabChecklist(layerId, fid, data) {
   const layer = shpLayers.find(l => l.id === layerId);
   if (!layer) return;
   const ownerUid = layer._ownerUid || auth.currentUser?.uid;
   const docRef = db.doc(`artifacts/${appId}/users/${ownerUid}/capas_vectoriales/${layerId}`);
   try {
-    await docRef.update({ [`checklist_data.${fIdx}`]: data });
+    // FieldPath evita que puntos u otros caracteres en el fid se interpreten como subpath
+    const fp = new firebase.firestore.FieldPath('checklist_data', String(fid));
+    await docRef.update(fp, data);
   } catch(e) {
     console.warn('No se pudo guardar checklist collab:', e);
   }
 }
+
 
 async function acceptShare(req, reqId) {
   const user = auth.currentUser;
