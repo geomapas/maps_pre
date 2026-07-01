@@ -108,7 +108,7 @@ function ensureFeatureIds(layerId, features) {
       let fid = natural != null ? String(natural) : null;
       if (!fid) {
         try { fid = (crypto?.randomUUID?.() || (Date.now().toString(36) + Math.random().toString(36).slice(2, 10))); }
-        catch(_) { fid = Date.now().toString(36) + '_' + idx + '_' + Math.random().\(\).toString(36).slice(2, 8); }
+        catch(_) { fid = Date.now().toString(36) + '_' + idx + '_' + Math.random().toString(36).slice(2, 8); }
       }
       f.properties._fid = fid;
       // Migrar checklist antiguo (por índice) al nuevo key por fid, si existe
